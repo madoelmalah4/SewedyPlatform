@@ -247,13 +247,15 @@ export default function LandingPage() {
                 boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
               }}
             >
-              <ReactPlayer
-                url={VidoeLink}
-                width="100%"
-                height="auto"
-                controls
-                muted={true}
-                playing={true}
+              <iframe
+                src="https://drive.google.com/file/d/1dphnvXMfm-A8PuZCdgFKJvgwLgNgmwVG/preview"
+                allow="autoplay"
+                frameBorder="0"
+                allowFullScreen
+                style={{
+                  width: "100%",
+                  height: "300px",
+                }}
               />
             </Box>
           </Stack>

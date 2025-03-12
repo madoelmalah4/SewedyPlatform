@@ -53,6 +53,13 @@ export const authApiSlice = api.injectEndpoints({
                 params: { title }, // Ensure proper query param handling
             }),
         }),
+        editAcheivmentStatus: builder.mutation({
+            query: (credentials) => ({
+                url: `/api/Projects_Information`,
+                method: "PUT",
+                params: { ...credentials }, // Ensure proper query param handling
+            }),
+        }),
     }),
 });
 
@@ -63,4 +70,5 @@ export const {
     useLazyGetAchievementsQuery,
     useAddAchievementMutation,
     useDeleteAchievementMutation, // Export the DELETE mutation
+    useEditAcheivmentStatusMutation
 } = authApiSlice;

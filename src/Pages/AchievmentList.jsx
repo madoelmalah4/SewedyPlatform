@@ -497,23 +497,6 @@ const AchievementCard = ({ achievement, onDelete, onEdit, isDeleting }) => {
             gap: 1,
           }}
         >
-          <Tooltip title="Edit achievement">
-            <IconButton
-              color="primary"
-              onClick={() => onEdit(achievement)}
-              size="medium"
-              sx={{
-                transition: "all 0.2s",
-                "&:hover": {
-                  backgroundColor: theme.palette.primary.light,
-                  color: theme.palette.primary.contrastText,
-                },
-              }}
-            >
-              <EditIcon />
-            </IconButton>
-          </Tooltip>
-
           <Tooltip title="Delete achievement">
             <IconButton
               color="error"
