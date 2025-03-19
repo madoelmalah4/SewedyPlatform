@@ -11,7 +11,7 @@ const NotAuthunticated = () => {
   const { showSnackbar } = useSnackbar();
 
   useEffect(() => {
-    showSnackbar("Opening Soon", "warning");
+    showSnackbar("this route isen't available for you", "warning");
     navigate("/");
   }, []);
 

@@ -26,18 +26,16 @@ const App = () => {
           <Route path="/Work" element={<Work />} />
           <Route path="/login/admin" element={<Login />} />
           <Route path="/apply" element={<Apply />} />
-          <Route element={<IsAuthLayOut />}>
-            <Route path="/courses" element={<Courses />} />
-          </Route>
 
           <Route path="*" element={<NoMatchRoute />} />
         </Route>
-
-        <Route element={<AdminNavbarLayOut />}>
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/acheivments" element={<AchievementList />} />
-          <Route path="/addachiev" element={<AddAchievment />} />
-          <Route path="/editachiev/:id" element={<AddAchievment />} />
+        <Route element={<IsAuthLayOut />}>
+          <Route element={<AdminNavbarLayOut />}>
+            <Route path="/orders" element={<Orders />} />
+            <Route path="/acheivments" element={<AchievementList />} />
+            <Route path="/addachiev" element={<AddAchievment />} />
+            <Route path="/editachiev/:id" element={<AddAchievment />} />
+          </Route>
         </Route>
       </Routes>
     </>
@@ -45,8 +43,3 @@ const App = () => {
 };
 
 export default App;
-
-
-
-
-

@@ -27,6 +27,7 @@ import Footer from "../Components/Footer";
 import AcheivmentsSlider from "../Components/AcheivmentsSlider";
 import CapstoneSection from "../Components/CapstoneSection";
 import SchoolActivities from "../Components/SchoolActivities";
+import CDCSection from "../Components/CDCSection";
 
 const MotionBox = motion(Box);
 const MotionTypography = motion(Typography);
@@ -382,7 +383,7 @@ function About() {
       </Box>
 
       {/* Vision & Mission Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 }, mt: 10, mb: 10 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 8 }, mt: 10, mb: 10 }}>
         <Grid container spacing={4}>
           <Grid item xs={12} md={6}>
             <Paper
@@ -481,6 +482,11 @@ function About() {
         </Grid>
       </Container>
 
+      <Box sx={{ bgcolor: "white" }}>
+        <Container maxWidth="lg">
+          <CDCSection/>
+        </Container>
+      </Box>
       {/* Achievements Section */}
       <Box sx={{ bgcolor: "#1a1a1a", py: { xs: 8, md: 10 } }}>
         <Container maxWidth="lg">
@@ -489,7 +495,7 @@ function About() {
       </Box>
 
       <Box sx={{ py: { xs: 8, md: 10 }, mt: 10 }}>
-       <SchoolActivities/>
+        <SchoolActivities />
       </Box>
 
       <Box sx={{ py: { xs: 8, md: 10 }, mt: 10 }}>

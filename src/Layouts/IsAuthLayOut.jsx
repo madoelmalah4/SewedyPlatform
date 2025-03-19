@@ -6,9 +6,7 @@ import { useSelector } from 'react-redux';
 
 const IsAuthLayOut = () => {
 
-    const isAuth = useSelector(selectIsAuth);
-    console.log(isAuth);
-    
+    const isAuth = useSelector(selectIsAuth);    
   return (
     <>
         {!isAuth ? <NotAuthunticated/>  : <Outlet/>}

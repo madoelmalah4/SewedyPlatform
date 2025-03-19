@@ -371,7 +371,7 @@ const Orders = () => {
             variant={params.row.status === status ? "contained" : "outlined"}
             color={color}
             size="small"
-            sx={{ fontSize: "0.75rem", padding: "2px 6px" , p:1 }}
+            sx={{ fontSize: "0.60rem", padding: "2px 6px" , p:1 }}
             onClick={() =>
               openStatusDialog(params.row, status)
             }

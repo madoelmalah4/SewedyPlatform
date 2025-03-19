@@ -20,11 +20,11 @@ import CostumButton from "../components/CostumButton";
 import SliderPartners from "../components/Slider";
 import Footer from "../components/Footer";
 import LandPic from "../assets/landpic.png";
-import sp1 from "../assets/sp1.jpg";
-import sp2 from "../assets/sp2.jpg";
 import sewedy from "../assets/sewedy.png";
 import homep from "../assets/homep.png";
 import { BuildTwoTone } from "@mui/icons-material";
+import StatsSection from "../Components/StatsSection";
+import SpecialMomentsSection from "../Components/SpecialMomentsSection";
 
 const MotionBox = motion(Box);
 
@@ -342,7 +342,7 @@ export default function LandingPage() {
       </Box>
 
       {/* Why Choose Us Section */}
-      <Container maxWidth="lg" sx={{ my: { xs: 10, md: 15 } }}>
+      <Container maxWidth="lg" sx={{ my: { xs: 10, md: 10 } }}>
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={{ xs: 6, md: 10 }}
@@ -438,142 +438,14 @@ export default function LandingPage() {
       </Container>
 
       {/* Statistics Section */}
-      <Box
-        sx={{
-          py: { xs: 10, md: 15 },
-          mt: { xs: 10, md: 15 },
-          mb: 2,
-        }}
-      >
-        <Container maxWidth="lg">
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            spacing={{ xs: 6, md: 10 }}
-            justifyContent="space-around"
-            alignItems="center"
-          >
-            {[
-              { count: 60, label: "Capstone projects every year" },
-              { count: 300, label: "Students" },
-              { count: 2, label: "Accredited Certificates" },
-            ].map((item, index) => (
-              <Paper
-                key={index}
-                elevation={3}
-                sx={{
-                  p: 4,
-                  textAlign: "center",
-                  borderRadius: 4,
-                  transition: "transform 0.3s ease-in-out",
-                  width: "250px",
-                  "&:hover": {
-                    transform: "translateY(-10px)",
-                  },
-                }}
-              >
-                <CountUpAnimation end={item.count} />
-                <Typography variant="h6" sx={{ mt: 2 }}>
-                  {item.label}
-                </Typography>
-              </Paper>
-            ))}
-          </Stack>
-        </Container>
-      </Box>
+
+
+      <StatsSection/>
 
       {/* Special Moments Section */}
-      <Box
-        id="special-moments"
-        sx={{
-          bgcolor: inView ? "#1C1D1F" : "white",
-          color: inView ? "white" : "text.primary",
-          py: { xs: 10, md: 15 },
-          transition: "background-color 0.3s ease",
-        }}
-      >
-        <Container maxWidth="lg">
-          <motion.div style={{ opacity }}>
-            <Typography
-              variant="h2"
-              sx={{
-                textAlign: "center",
-                mb: 3,
-                color: "primary.main",
-                fontWeight: 700,
-                fontSize: { xs: "2rem", sm: "2.5rem", md: "3.5rem" },
-              }}
-            >
-              Special Moments!!
-            </Typography>
-            <Divider
-              sx={{
-                width: { xs: 200, md: 400 },
-                mx: "auto",
-                mb: 8,
-                borderColor: "primary.main",
-              }}
-            />
-            <Stack
-              direction={{ xs: "column", md: "row" }}
-              spacing={{ xs: 8, md: 10 }}
-              alignItems="flex-start"
-            >
-              {[
-                {
-                  title: "Special Visit",
-                  image: sp1,
-                  description:
-                    "During her visit to Egypt, U.S. First Lady Dr. Jill Biden toured the Sewedy International Applied Technology and Software School. She explored student projects, admired their skills, and emphasized youth empowerment and U.S.-Egypt partnerships. The school's curriculum aligns with industry standards, and her visit concluded with commemorative photos with students.",
-                },
-                {
-                  title: "El Sewedy ICPC",
-                  image: sp2,
-                  description:
-                    "The launch of the first edition of the Elsewedy CPC Problem-Solving Competition, attended by Coach Mohamed Abdel Wahab, one of the top 50 programmers in the world. This marks a proud moment for our school as we foster innovation and excellence in programming. Stay tuned for more updates on this exciting competition!",
-                },
-              ].map((moment, index) => (
-                <Box key={index} flex={1} textAlign="center">
-                  <Typography
-                    variant="h3"
-                    sx={{
-                      mb: 3,
-                      fontWeight: 600,
-                      color: inView ? "white" : "black",
-                    }}
-                  >
-                    {moment.title}
-                  </Typography>
-                  <Box
-                    component="img"
-                    src={moment.image}
-                    alt={moment.title}
-                    sx={{
-                      width: "100%",
-                      maxWidth: 400,
-                      height: "auto",
-                      borderRadius: 4,
-                      mb: 3,
-                      boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-                    }}
-                  />
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      maxWidth: 500,
-                      mx: "auto",
-                      fontSize: "1.1rem",
-                      lineHeight: 1.8,
-                      textAlign: "center",
-                    }}
-                  >
-                    {moment.description}
-                  </Typography>
-                </Box>
-              ))}
-            </Stack>
-          </motion.div>
-        </Container>
-      </Box>
+
+
+      <SpecialMomentsSection/>
 
       {/* Partners Section */}
       <Box sx={{ py: { xs: 10, md: 15 } }}>
