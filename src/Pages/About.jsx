@@ -383,7 +383,7 @@ function About() {
       </Box>
 
       {/* Vision & Mission Section */}
-      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 8 }, mt: 10, mb: 10 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 8, md: 8 }, mt: 10, mb:2 }}>
         <Grid container spacing={4}>
           <Grid item xs={12} md={6}>
             <Paper
@@ -494,7 +494,7 @@ function About() {
         </Container>
       </Box>
 
-      <Box sx={{ py: { xs: 8, md: 10 }, mt: 10 }}>
+      <Box sx={{ py: { xs: 2, md: 2 }, mt: 10 }}>
         <SchoolActivities />
       </Box>
 

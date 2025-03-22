@@ -63,6 +63,7 @@ const Navbar = () => {
   const isAuth = useSelector(selectIsAuth);
 
   const navLinks = [
+    { text: "Home", to: "/" },
     { text: "Apply Now!", to: "/apply" },
     { text: "Work with us", to: "/Work" },
     { text: "About Us", to: "/about" },

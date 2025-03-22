@@ -81,14 +81,13 @@ const MobileNavbar = () => {
             height: "40px",
             width: "auto",
             position: "absolute",
-            left:"45%",
+            left: "45%",
             transform: "translateX(-50%)",
             cursor: "pointer",
-            mb:1,
+            mb: 1,
           }}
           onClick={() => navigate("/")}
         />
-
       </Stack>
 
       {/* Mobile Navigation Drawer */}
@@ -209,6 +208,7 @@ const MobileNavbar = () => {
             Connect with El Sewedy
           </Typography>
           <Button
+            href="mailto:elsewedy.iats@gmail.com"
             fullWidth
             variant="outlined"
             sx={{

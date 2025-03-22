@@ -23,7 +23,7 @@ import {
   ArrowForward,
   Groups,
 } from "@mui/icons-material";
-import mohammed from "../assets/mohammed.jpg";
+import mohammed from "../assets/mohammed.jpeg";
 import art from "../assets/art.jpg";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import fab from '../assets/fab.jpg'
@@ -123,7 +123,7 @@ const SchoolActivities = () => {
     <Box
       sx={{
         bgcolor: "white",
-        py: { xs: 6, md: 10 },
+        py: { xs: 3, md: 3 },
         position: "relative",
         overflow: "hidden",
       }}

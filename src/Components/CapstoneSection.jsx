@@ -43,7 +43,7 @@ const CapstoneSection = () => {
     <Box
       sx={{
         bgcolor: "#1a1a1a",
-        py: { xs: 8, md: 12 },
+        py: { xs: 6, md: 6 },
         position: "relative",
         "&::before": {
           content: '""',

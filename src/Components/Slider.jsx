@@ -28,21 +28,21 @@ const SliderPartners = () => {
       <Swiper
         slidesPerView={3} // Number of slides visible
         spaceBetween={40} // Gap between slides
-        loop={true} // Enable infinite loop
-        speed={1000} // Smooth sliding speed (1s transition)
-        autoplay={{
-          delay: 2500,
-          disableOnInteraction: false,
-        }}
-        navigation={{
-          nextEl: ".swiper-button-next",
-          prevEl: ".swiper-button-prev",
-        }}
-        pagination={{
-          clickable: true,
-          el: ".swiper-pagination",
-          dynamicBullets: true,
-        }}
+        // loop={true} // Enable infinite loop
+        // speed={1000} // Smooth sliding speed (1s transition)
+        // autoplay={{
+        //   delay: 2500,
+        //   disableOnInteraction: false,
+        // }}
+        // navigation={{
+        //   nextEl: ".swiper-button-next",
+        //   prevEl: ".swiper-button-prev",
+        // }}
+        // pagination={{
+        //   clickable: true,
+        //   el: ".swiper-pagination",
+        //   dynamicBullets: true,
+        // }}
         modules={[Autoplay, Navigation, Pagination]}
       >
         {extendedLogos.map((logo, index) => (
@@ -85,7 +85,7 @@ const SliderPartners = () => {
       />
 
       {/* Navigation Arrows */}
-      {["prev", "next"].map((dir) => (
+      {/* {["prev", "next"].map((dir) => (
         <Box
           key={dir}
           className={`swiper-button-${dir}`}
@@ -110,7 +110,8 @@ const SliderPartners = () => {
             },
           }}
         />
-      ))}
+      ))} */}
+      
     </Box>
   );
 };

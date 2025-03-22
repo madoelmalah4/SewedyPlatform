@@ -25,13 +25,13 @@ import homep from "../assets/homep.png";
 import { BuildTwoTone } from "@mui/icons-material";
 import StatsSection from "../Components/StatsSection";
 import SpecialMomentsSection from "../Components/SpecialMomentsSection";
+import { useNavigate } from "react-router-dom";
 
 const MotionBox = motion(Box);
 
 const CountUpAnimation = ({ end, duration = 2 }) => {
   const [count, setCount] = useState(0);
   const nodeRef = useRef(null);
-  
   
   useEffect(() => {
     const node = nodeRef.current;
@@ -85,7 +85,8 @@ export default function LandingPage() {
   const { scrollYProgress } = useScroll();
   const opacity = useTransform(scrollYProgress, [0, 0.5], [0, 1]);
   const VidoeLink =
-    "https://drive.google.com/uc?export=download&id=1dphnvXMfm-A8PuZCdgFKJvgwLgNgmwVG";
+  "https://drive.google.com/uc?export=download&id=1dphnvXMfm-A8PuZCdgFKJvgwLgNgmwVG";
+  const navigate = useNavigate();
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -439,13 +440,11 @@ export default function LandingPage() {
 
       {/* Statistics Section */}
 
-
-      <StatsSection/>
+      <StatsSection />
 
       {/* Special Moments Section */}
 
-
-      <SpecialMomentsSection/>
+      <SpecialMomentsSection />
 
       {/* Partners Section */}
       <Box sx={{ py: { xs: 10, md: 15 } }}>
@@ -492,6 +491,128 @@ export default function LandingPage() {
       </Container> */}
 
       {/* Footer */}
+
+      <Box
+        sx={{
+          py: { xs: 8, md: 12 },
+          background: "linear-gradient(135deg, #DA1B1B 0%, #FF512F 100%)",
+          color: "white",
+          textAlign: "center",
+          borderRadius: { md: "100px 0 100px 0" },
+          mx: { md: 4 },
+          mb: 8,
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <motion.div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background:
+              "radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)",
+          }}
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.4, 0.6, 0.4],
+          }}
+          transition={{
+            repeat: Number.POSITIVE_INFINITY,
+            repeatType: "reverse",
+            duration: 8,
+          }}
+        />
+
+        <Container maxWidth="md" sx={{ position: "relative", zIndex: 2 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+          >
+            <Typography
+              variant="h2"
+              sx={{
+                fontWeight: 700,
+                mb: 3,
+                fontSize: { xs: "2rem", sm: "2.5rem", md: "3.5rem" },
+              }}
+            >
+              Ready to Join Our School?
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                fontSize: "1.2rem",
+                mb: 5,
+                maxWidth: "800px",
+                mx: "auto",
+              }}
+            >
+              Take the first step towards a bright future in technology and
+              innovation
+            </Typography>
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={3}
+              justifyContent="center"
+            >
+              <Button
+                onClick={() => navigate('/apply')}
+                variant="contained"
+                size="large"
+                sx={{
+                  bgcolor: "white",
+                  color: "#DA1B1B",
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: "8px",
+                  textTransform: "none",
+                  fontSize: "18px",
+                  fontWeight: "600",
+                  "&:hover": {
+                    bgcolor: "rgba(255,255,255,0.9)",
+                    transform: "translateY(-3px)",
+                    boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
+                  },
+                  transition: "all 0.3s ease",
+                }}
+                type="button"
+              >
+                Apply Now
+              </Button>
+              <Button
+                href="mailto:elsewedy.iats@gmail.com"
+                variant="outlined"
+                size="large"
+                sx={{
+                  borderColor: "white",
+                  color: "white",
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: "8px",
+                  textTransform: "none",
+                  fontSize: "18px",
+                  fontWeight: "500",
+                  "&:hover": {
+                    borderColor: "white",
+                    bgcolor: "rgba(255,255,255,0.1)",
+                    transform: "translateY(-3px)",
+                    boxShadow: "0 6px 20px rgba(0,0,0,0.1)",
+                  },
+                  transition: "all 0.3s ease",
+                }}
+              >
+                Contact Us
+              </Button>
+            </Stack>
+          </motion.div>
+        </Container>
+      </Box>
+
       <Footer />
     </Box>
   );

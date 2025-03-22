@@ -144,7 +144,7 @@ const AcheivmentsSlider = () => {
       id="achievements-section"
       sx={{
         bgcolor: "#1a1a1a",
-        py: { xs: 6, md: 10 },
+        py: { xs: 6, md: 3 },
         position: "relative",
       }}
     >
