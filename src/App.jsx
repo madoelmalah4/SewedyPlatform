@@ -14,6 +14,7 @@ import Apply from "./Pages/Apply.jsx";
 import ScrollToTop from "./Components/ScrollToTop .jsx";
 import AchievementList from "./Pages/AchievmentList.jsx";
 import AddAchievment from "./Pages/AddAchievment.jsx";
+import StudentGrades from "./Pages/StudentGrades.jsx";
 
 const App = () => {
   return (
@@ -35,6 +36,7 @@ const App = () => {
             <Route path="/acheivments" element={<AchievementList />} />
             <Route path="/addachiev" element={<AddAchievment />} />
             <Route path="/editachiev/:id" element={<AddAchievment />} />
+            <Route path="/studentsgrad" element={<StudentGrades/>} />
           </Route>
         </Route>
       </Routes>

@@ -70,6 +70,7 @@ const AdminNavbar = () => {
 
   // Navigation items
   const navItems = [
+    { text: "StudentsGrads", icon: <HomeIcon />, path: "/studentsgrad" },
     { text: "Orders", icon: <OrdersIcon />, path: "/orders" },
     { text: "Achievements", icon: <AchievementsIcon />, path: "/acheivments" },
     { text: "Home", icon: <HomeIcon />, path: "/" },
