@@ -30,7 +30,7 @@ import {
 import { useFormSubmitMutation } from "../Slices/AuthSlice/AuthInjection";
 import { useNavigate } from "react-router-dom";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 const ProjectForm = () => {
   const theme = useTheme();

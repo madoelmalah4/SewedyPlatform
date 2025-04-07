@@ -11,7 +11,7 @@ import {
 import { motion } from "framer-motion";
 import { School, Groups, Engineering, Lightbulb } from "@mui/icons-material";
 import anas from '../assets/1.png'
-const MotionPaper = motion(Paper);
+const MotionPaper = motion.create(Paper);
 
 const CapstoneSection = () => {
   const theme = useTheme();

@@ -30,9 +30,9 @@ import fab from '../assets/fab.jpg'
 import drama from '../assets/drama.jpg'
 import music from '../assets/music.jpg'
 
-const MotionBox = motion(Box);
-const MotionCard = motion(Card);
-const MotionTypography = motion(Typography);
+const MotionBox = motion.create(Box);
+const MotionCard = motion.create(Card);
+const MotionTypography = motion.create(Typography);
 
 // Activity data with images
 const activities = [

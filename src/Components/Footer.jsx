@@ -20,7 +20,7 @@ import {
   LocationOn,
 } from "@mui/icons-material";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 const Footer = () => {
   const theme = useTheme();

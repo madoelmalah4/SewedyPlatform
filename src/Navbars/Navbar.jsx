@@ -65,7 +65,7 @@ const Navbar = () => {
   const navLinks = [
     { text: "Home", to: "/" },
     { text: "Apply Now!", to: "/apply" },
-    { text: "Work with us", to: "/Work" },
+    { text: "Our Services", to: "/Work" },
     { text: "About Us", to: "/about" },
   ];
 

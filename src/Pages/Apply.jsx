@@ -45,7 +45,7 @@ import { motion } from "framer-motion";
 import sewedy from "../assets/sewedy.png";
 import Footer from "../Components/Footer";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 const testimonials = [
   {

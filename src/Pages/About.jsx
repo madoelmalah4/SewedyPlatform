@@ -29,8 +29,8 @@ import CapstoneSection from "../Components/CapstoneSection";
 import SchoolActivities from "../Components/SchoolActivities";
 import CDCSection from "../Components/CDCSection";
 
-const MotionBox = motion(Box);
-const MotionTypography = motion(Typography);
+const MotionBox = motion.create(Box);
+const MotionTypography = motion.create(Typography);
 
 function About() {
   const theme = useTheme();

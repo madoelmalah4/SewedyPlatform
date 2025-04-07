@@ -30,7 +30,7 @@ const MobileNavbar = () => {
  const navItems = [
    { text: "Home", path: "/" },
    { text: "Apply Now", path: "/apply" },
-   { text: "Work", path: "/Work" },
+   { text: "Our Services", path: "/Work" },
    { text: "About", path: "/about" },
    ...(isAuth ? [{ text: "Dashboard", path: "/orders" }] : []),
  ];

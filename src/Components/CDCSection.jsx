@@ -24,9 +24,9 @@ import emp from '../assets/emp.jpg'
 import php from '../assets/php.jpg'
 import hub from '../assets/hub.jpg'
 // Motion components
-const MotionBox = motion(Box);
-const MotionCard = motion(Card);
-const MotionTypography = motion(Typography);
+const MotionBox = motion.create(Box);
+const MotionCard = motion.create(Card);
+const MotionTypography = motion.create(Typography);
 
 const CDCSection = () => {
   const theme = useTheme();

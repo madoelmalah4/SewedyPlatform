@@ -370,7 +370,7 @@ const AcheivmentsSlider = () => {
                           image={achievement.imageUrl}
                           alt={achievement.title}
                           sx={{
-                            height: 200,
+                            height: 270,
                             objectFit: "cover",
                           }}
                         />

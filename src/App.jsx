@@ -15,8 +15,10 @@ import ScrollToTop from "./Components/ScrollToTop .jsx";
 import AchievementList from "./Pages/AchievmentList.jsx";
 import AddAchievment from "./Pages/AddAchievment.jsx";
 import StudentGrades from "./Pages/StudentGrades.jsx";
+import StudentsForm from "./Pages/StudentsForm.jsx";
 
 const App = () => {
+
   return (
     <>
       <ScrollToTop />
@@ -27,6 +29,7 @@ const App = () => {
           <Route path="/Work" element={<Work />} />
           <Route path="/login/admin" element={<Login />} />
           <Route path="/apply" element={<Apply />} />
+          <Route path="/students/:grade" element={<StudentsForm />} />
 
           <Route path="*" element={<NoMatchRoute />} />
         </Route>
@@ -36,7 +39,7 @@ const App = () => {
             <Route path="/acheivments" element={<AchievementList />} />
             <Route path="/addachiev" element={<AddAchievment />} />
             <Route path="/editachiev/:id" element={<AddAchievment />} />
-            <Route path="/studentsgrad" element={<StudentGrades/>} />
+            <Route path="/studentsgrad" element={<StudentGrades />} />
           </Route>
         </Route>
       </Routes>

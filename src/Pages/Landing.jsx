@@ -27,7 +27,7 @@ import StatsSection from "../Components/StatsSection";
 import SpecialMomentsSection from "../Components/SpecialMomentsSection";
 import { useNavigate } from "react-router-dom";
 
-const MotionBox = motion(Box);
+const MotionBox = motion.create(Box);
 
 const CountUpAnimation = ({ end, duration = 2 }) => {
   const [count, setCount] = useState(0);
@@ -178,7 +178,8 @@ export default function LandingPage() {
 
               <Button
                 variant="contained"
-                href="https://www.facebook.com/profile.php?id=100083837165938"
+                // href="https://www.facebook.com/profile.php?id=100083837165938"
+                onClick = {() => navigate("/about")}
                 sx={{
                   bgcolor: "#EF3131",
                   color: "white",
