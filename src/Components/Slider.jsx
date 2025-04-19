@@ -9,7 +9,7 @@ import SwwedyLogo from "../assets/sewedy2.png";
 import Wezara from "../assets/wzara.png";
 import Iats from "../assets/iats.png";
 
-const logos = [SwwedyLogo, Wezara, Iats];
+const logos = [Wezara, SwwedyLogo, Iats];
 
 // Function to duplicate slides if there are fewer than slidesPerView
 const extendedLogos = logos.length < 6 ? [...logos, ...logos] : logos;

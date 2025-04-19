@@ -1,3 +1,6 @@
+// src/Pages/Login.jsx
+"use client"; // If using Next.js App Router
+
 import React, { useState } from "react";
 import {
   Box,
@@ -11,12 +14,12 @@ import {
   useTheme,
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { useLoginMutation } from "../Slices/AuthSlice/AuthInjection";
+import { useLoginMutation } from "../Slices/AuthSlice/AuthInjection"; // Adjust path
 import { useNavigate } from "react-router-dom";
-import { useSnackbar } from "./SnackbarProvider";
-import sewedylogo from "../assets/sewedylogo.png";
+import { useSnackbar } from "./SnackbarProvider"; // !! ADJUST PATH !!
+import sewedylogo from "../assets/sewedylogo.png"; // Adjust path
 import { useDispatch } from "react-redux";
-import { setCredentials } from "../Slices/AuthSlice/Authslice";
+import { setCredentials } from "../Slices/AuthSlice/Authslice"; // Adjust path
 
 const Login = () => {
   const [formValues, setFormValues] = useState({ name: "", password: "" });
@@ -28,7 +31,6 @@ const Login = () => {
   const { showSnackbar } = useSnackbar();
   const theme = useTheme();
 
-  // Validate form inputs
   const validate = () => {
     const newErrors = {};
     if (!formValues.name.trim()) {
@@ -41,17 +43,16 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormValues((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  // Toggle password visibility
   const handleTogglePassword = () => setShowPassword((prev) => !prev);
+  const handleMouseDownPassword = (event) => event.preventDefault();
 
-  // Handle form submission
+  // --- CORRECTED handleSubmit ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -59,31 +60,55 @@ const Login = () => {
     try {
       const res = await login({ ...formValues }).unwrap();
 
-      if (res?.massege === "Valid") {
-        // Set credentials in Redux store
+      // --- Check Response based on your JSON example ---
+      if (res?.massege === "Valid" && res?.token && res?.role) {
+        // --- Dispatch Correct Credentials ---
         dispatch(
           setCredentials({
-            accessToken: res.accessToken,
-            refreshToken: res.refreshToken,
-            userId: res.userId,
             role: res.role,
-            isAuth: true, // ✅ Explicitly setting isAuth to true
+            isAuth: true, // Set isAuth to tru
           })
         );
 
-        showSnackbar("Login successful!", "success");
-        navigate("/orders"); // Redirect user to orders page
+        showSnackbar("Login successful! Redirecting...", "success");
+
+        // --- Role-Based Navigation ---
+        let redirectPath = "/"; // Default fallback
+
+        switch (
+          res?.role.toLowerCase() // Use lowercase for robustness
+        ) {
+          case "super admin":
+            redirectPath = "/admin/empdata"; // Example Super Admin landing page
+            break;
+          case "tech admin":
+            redirectPath = "/tech/orders"; // Example Tech Admin landing page
+            break;
+          case "grad admin":
+            redirectPath = "/grad/studentsgrad"; // Example Grad Admin landing page
+            break;
+          default:
+            redirectPath = "/"; // Fallback to home or a generic dashboard
+            break;
+        }
+        navigate(redirectPath, { replace: true }); // Navigate after successful login and dispatch
       } else {
-        showSnackbar("Invalid credentials, please try again.", "error");
+        // Handle unsuccessful login attempts (e.g., invalid credentials message from API)
+        showSnackbar(res?.massege || "Invalid username or password.", "error");
       }
     } catch (error) {
-      showSnackbar(
-        error?.data?.message || "Login failed. Please try again.",
-        "error"
-      );
+      // Handle network errors or unexpected errors from the login mutation
+      console.error("Login API Error:", error);
+      const message =
+        error?.data?.title ||
+        error?.data?.message ||
+        "Login failed. Please try again later.";
+      showSnackbar(message, "error");
     }
   };
+  // --- End CORRECTED handleSubmit ---
 
+  // --- JSX Structure (No Changes) ---
   return (
     <Grid
       container
@@ -91,7 +116,7 @@ const Login = () => {
       alignItems="center"
       sx={{
         minHeight: "100vh",
-        backgroundColor: theme.palette.mode === "dark" ? "#121212" : "#f4f4f9",
+        bgcolor: theme.palette.mode === "dark" ? "#121212" : "#f4f4f9",
         p: 2,
       }}
     >
@@ -103,28 +128,24 @@ const Login = () => {
             p: 4,
             borderRadius: 3,
             boxShadow: 3,
-            backgroundColor: "white",
+            bgcolor: "background.paper",
             textAlign: "center",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
           }}
         >
-          {/* Sewedy Logo */}
           <img
             src={sewedylogo}
             alt="Sewedy Logo"
-            style={{ width: 150, marginBottom: 40 }}
+            style={{ width: 150, marginBottom: theme.spacing(4) }}
           />
-
           <Typography
             variant="h4"
-            sx={{ mb: 2, fontWeight: "bold", color: "#1a1a1a" }}
+            sx={{ mb: 2, fontWeight: "bold", color: "text.primary" }}
           >
-            Login
+            Admin Login
           </Typography>
-
-          {/* Username Input */}
           <TextField
             label="Username"
             name="name"
@@ -132,11 +153,10 @@ const Login = () => {
             onChange={handleChange}
             error={!!errors.name}
             helperText={errors.name}
+            required
             fullWidth
             sx={{ mb: 2 }}
           />
-
-          {/* Password Input */}
           <TextField
             label="Password"
             type={showPassword ? "text" : "password"}
@@ -145,34 +165,35 @@ const Login = () => {
             onChange={handleChange}
             error={!!errors.password}
             helperText={errors.password}
+            required
             fullWidth
             sx={{ mb: 3 }}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton onClick={handleTogglePassword} edge="end">
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
+                  {" "}
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={handleTogglePassword}
+                    onMouseDown={handleMouseDownPassword}
+                    edge="end"
+                  >
+                    {" "}
+                    {showPassword ? <VisibilityOff /> : <Visibility />}{" "}
+                  </IconButton>{" "}
                 </InputAdornment>
               ),
             }}
           />
-
-          {/* Submit Button */}
           <Button
             type="submit"
             variant="contained"
             fullWidth
             disabled={isLoading}
-            sx={{
-              py: 1.5,
-              fontWeight: "bold",
-              backgroundColor: "#1976d2",
-              "&:hover": { backgroundColor: "#1565c0" },
-            }}
+            sx={{ py: 1.5, fontWeight: "bold" }}
           >
             {isLoading ? (
-              <CircularProgress size={24} sx={{ color: "#fff" }} />
+              <CircularProgress size={24} color="inherit" />
             ) : (
               "Login"
             )}

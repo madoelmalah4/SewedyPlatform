@@ -28,11 +28,12 @@ const MobileNavbar = () => {
 
 
  const navItems = [
-   { text: "Home", path: "/" },
-   { text: "Apply Now", path: "/apply" },
-   { text: "Our Services", path: "/Work" },
-   { text: "About", path: "/about" },
-   ...(isAuth ? [{ text: "Dashboard", path: "/orders" }] : []),
+   { text: "Home", to: "/" },
+   { text: "Apply Now!", to: "/apply" },
+   { text: "Our Services", to: "/Work" },
+   { text: "Hire Coders", to: "/emp" },
+   { text: "About Us", to: "/about" },
+  //  ...(isAuth ? [{ text: "Dashboard", path: "/orders" }] : []),
  ];
 
 
@@ -139,7 +140,7 @@ const MobileNavbar = () => {
               style={{ transitionDelay: `${index * 50}ms` }}
             >
               <Button
-                onClick={() => handleNavigation(item.path)}
+                onClick={() => handleNavigation(item.to)}
                 sx={{
                   justifyContent: "flex-start",
                   py: 2,

@@ -51,6 +51,17 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
 
 export const api = createApi({
     baseQuery: baseQueryWithReauth,
+    tagTypes: [
+        "Employment",
+        "Project", // For Projects_Information endpoints
+        "Achievement", // For Achivments endpoints
+        "User", // For potential user/admin lists
+        "Admin", // If Admins are a separate type
+        // Add any other data types your API manages
+        "department",
+        "product",
+        "orders",
+    ],
     tagTypes: ["department", "product", "orders"],
     extractRehydrationInfo(action, { reducerPath }) {
         // when persisting the root reducer

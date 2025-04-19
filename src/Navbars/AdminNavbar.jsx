@@ -1,5 +1,8 @@
+// src/components/AdminNavbar.jsx (or wherever you place shared components)
+"use client"; // If using Next.js App Router
+
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link as RouterLink } from "react-router-dom"; // Use RouterLink
 import { useDispatch } from "react-redux";
 import {
   AppBar,
@@ -18,255 +21,272 @@ import {
   Drawer,
   List,
   ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
+  Container, // Added Container
 } from "@mui/material";
 import {
-  Dashboard as DashboardIcon,
-  ShoppingCart as OrdersIcon,
-  EmojiEvents as AchievementsIcon,
-  Home as HomeIcon,
-  Logout as LogoutIcon,
   Menu as MenuIcon,
-  Person as PersonIcon,
-  Settings as SettingsIcon,
+  Logout as LogoutIcon,
+  AccountCircle, // Use default for avatar icon
+  ChevronLeft as ChevronLeftIcon, // For closing drawer
 } from "@mui/icons-material";
+// Import logout action from your slice
 import { logoutLocally } from "../Slices/AuthSlice/Authslice";
-import SchoolIcon from "@mui/icons-material/School";
+// --- Layout Configuration ---
+const drawerWidth = 240; // Consistent drawer width
 
-const AdminNavbar = () => {
+const AdminNavbar = ({ navItems = [], pageTitle = "Admin Area" }) => {
+  // Receive navItems and title as props
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   // State for user menu
-  const [anchorEl, setAnchorEl] = useState(null);
-  const open = Boolean(anchorEl);
+  const [anchorElUser, setAnchorElUser] = useState(null);
+  const userMenuOpen = Boolean(anchorElUser);
 
   // State for mobile drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Handle user menu open
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
+  // --- Handlers ---
+  const handleMenuOpen = (event) => setAnchorElUser(event.currentTarget);
+  const handleMenuClose = () => setAnchorElUser(null);
+  const toggleDrawer = (open) => (event) => {
+    if (
+      event.type === "keydown" &&
+      (event.key === "Tab" || event.key === "Shift")
+    ) {
+      return;
+    }
+    setDrawerOpen(open);
   };
-
-  // Handle user menu close
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  // Handle logout
   const handleLogout = () => {
-    dispatch(logoutLocally());
-    navigate("/");
     handleMenuClose();
+    dispatch(logoutLocally()); // Dispatch logout action
+    navigate("/login/admin"); // Redirect to login after logout
   };
 
-  // Toggle mobile drawer
-  const toggleDrawer = () => {
-    setDrawerOpen(!drawerOpen);
-  };
+  const handelNavigation = ()=>{
+    navigate("/"); // Redirect to orders page
+  }
+  // --- End Handlers ---
 
-  // Navigation items
-  const navItems = [
-    { text: "StudentsGrads", icon: <SchoolIcon />, path: "/studentsgrad" },
-    { text: "Orders", icon: <OrdersIcon />, path: "/orders" },
-    { text: "Achievements", icon: <AchievementsIcon />, path: "/acheivments" },
-    { text: "Home", icon: <HomeIcon />, path: "/" },
-  ];
+  // --- Drawer Content ---
+  const drawerContent = (
+    <Box
+      sx={{ width: drawerWidth }}
+      role="presentation"
+      onClick={toggleDrawer(false)} // Close drawer on item click
+      onKeyDown={toggleDrawer(false)}
+    >
+      <Toolbar
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: 2,
+        }}
+      >
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          Menu
+        </Typography>
+        <IconButton onClick={toggleDrawer(false)}>
+          <ChevronLeftIcon />
+        </IconButton>
+      </Toolbar>
+      <Divider />
+      <List>
+        {/* Map over the navItems passed as props */}
+        {navItems.map((item) => (
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton component={RouterLink} to={item.path}>
+              {" "}
+              {/* Use RouterLink */}
+              <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>
+                {item.icon || <DashboardIcon />}{" "}
+                {/* Use provided icon or default */}
+              </ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
+          </ListItem>
+        ))}
+      </List>
+      <Divider sx={{ mt: "auto" }} />
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton
+            onClick={handleLogout}
+            sx={{ color: theme.palette.error.main }}
+          >
+            <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>
+              <LogoutIcon />
+            </ListItemIcon>
+            <ListItemText primary="Logout" />
+          </ListItemButton>
+        </ListItem>
+      </List>
+    </Box>
+  );
+  // --- End Drawer Content ---
 
   return (
-    <AppBar
-      position="sticky"
-      elevation={3}
-      sx={{
-        backgroundColor: "black",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
-      }}
-    >
-      <Toolbar sx={{ justifyContent: "space-between" }}>
-        {/* Left side - Logo and title */}
-        <Box sx={{ display: "flex", alignItems: "center" }}>
-          {isMobile && (
+    <>
+      <AppBar
+        position="sticky" // Sticky might be better for admin panels
+        elevation={1}
+        sx={{
+          backgroundColor: theme.palette.background.paper, // Use paper background
+          color: theme.palette.text.primary, // Use primary text color
+          borderBottom: `1px solid ${theme.palette.divider}`, // Use theme divider
+          zIndex: (theme) => theme.zIndex.drawer + 1, // Keep above drawer
+        }}
+      >
+        <Container maxWidth="xl">
+          {" "}
+          {/* Use Container for consistent padding */}
+          <Toolbar disableGutters sx={{ minHeight: { xs: 64, md: 70 } }}>
+            {" "}
+            {/* Standard toolbar height */}
+            {/* Mobile Menu Toggle */}
             <IconButton
               color="inherit"
+              aria-label="open drawer"
               edge="start"
-              onClick={toggleDrawer}
-              sx={{ mr: 1 }}
+              onClick={toggleDrawer(true)}
+              sx={{ mr: 2, display: { md: "none" } }} // Show only on mobile
             >
               <MenuIcon />
             </IconButton>
-          )}
-
-          <DashboardIcon sx={{ mr: 1.5, fontSize: 28 }} />
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              fontWeight: 600,
-              letterSpacing: 0.5,
-              display: { xs: "none", sm: "block" },
-            }}
-          >
-            Admin Dashboard
-          </Typography>
-        </Box>
-
-        {/* Center - Navigation buttons (desktop only) */}
-        {!isMobile && (
-          <Box sx={{ display: "flex", gap: 1 }}>
-            {navItems.map((item) => (
-              <Button
-                key={item.text}
-                color="inherit"
-                startIcon={item.icon}
-                onClick={() => navigate(item.path)}
-                sx={{
-                  mx: 0.5,
-                  py: 1,
-                  textTransform: "none",
-                  fontWeight: 500,
-                  borderRadius: 1,
-                  "&:hover": {
-                    backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  },
-                }}
-              >
-                {item.text}
-              </Button>
-            ))}
-          </Box>
-        )}
-
-        {/* Right side - User menu */}
-        <Box>
-          <Tooltip title="Account settings">
-            <IconButton
-              onClick={handleMenuOpen}
-              size="small"
-              sx={{ ml: 2 }}
-              aria-controls={open ? "account-menu" : undefined}
-              aria-haspopup="true"
-              aria-expanded={open ? "true" : undefined}
+            {/* Page Title */}
+            <Typography
+              variant="h6"
+              component="div"
+              noWrap // Prevent wrapping
+              sx={{ flexGrow: 1, fontWeight: 600 }}
             >
-              <Avatar sx={{ width: 32, height: 32, bgcolor: "#DA1B1B" }}>
-                <PersonIcon />
-              </Avatar>
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        {/* User dropdown menu */}
-        <Menu
-          anchorEl={anchorEl}
-          id="account-menu"
-          open={open}
-          onClose={handleMenuClose}
-          onClick={handleMenuClose}
-          PaperProps={{
-            elevation: 3,
-            sx: {
-              overflow: "visible",
-              filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.32))",
-              mt: 1.5,
-              bgcolor: "#121212",
-              color: "white",
-              border: "1px solid rgba(255, 255, 255, 0.12)",
-              "& .MuiMenuItem-root": {
-                py: 1,
-                px: 2,
-              },
-              "&:before": {
-                content: '""',
-                display: "block",
-                position: "absolute",
-                top: 0,
-                right: 14,
-                width: 10,
-                height: 10,
-                bgcolor: "#121212",
-                transform: "translateY(-50%) rotate(45deg)",
-                zIndex: 0,
-                borderTop: "1px solid rgba(255, 255, 255, 0.12)",
-                borderLeft: "1px solid rgba(255, 255, 255, 0.12)",
-              },
-            },
-          }}
-          transformOrigin={{ horizontal: "right", vertical: "top" }}
-          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-        >
-          <Divider sx={{ my: 1, borderColor: "rgba(255, 255, 255, 0.12)" }} />
-          <MenuItem onClick={handleLogout}>
-            <ListItemIcon>
-              <LogoutIcon fontSize="small" sx={{ color: "#f44336" }} />
-            </ListItemIcon>
-            <Typography color="#f44336">Logout</Typography>
-          </MenuItem>
-        </Menu>
-
-        {/* Mobile drawer */}
-        <Drawer
-          anchor="left"
-          open={drawerOpen}
-          onClose={toggleDrawer}
-          PaperProps={{
-            sx: {
-              width: 240,
-              bgcolor: "#121212",
-              color: "white",
-            },
-          }}
-        >
-          <Box sx={{ p: 2, display: "flex", alignItems: "center" }}>
-            <DashboardIcon sx={{ mr: 1.5 }} />
-            <Typography variant="h6" component="div" fontWeight={600}>
-              Admin Dashboard
+              {pageTitle} {/* Use dynamic title */}
             </Typography>
-          </Box>
-          <Divider sx={{ borderColor: "rgba(255, 255, 255, 0.12)" }} />
-          <List>
-            {navItems.map((item) => (
-              <ListItem
-                button
-                key={item.text}
-                onClick={() => {
-                  navigate(item.path);
-                  toggleDrawer();
-                }}
-                sx={{
-                  "&:hover": {
-                    bgcolor: "rgba(255, 255, 255, 0.08)",
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ color: "white", minWidth: 40 }}>
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText primary={item.text} />
-              </ListItem>
-            ))}
-            <Divider sx={{ my: 1, borderColor: "rgba(255, 255, 255, 0.12)" }} />
-            <ListItem
-              button
-              onClick={handleLogout}
+            {/* Desktop Navigation Buttons */}
+            <Box
               sx={{
-                color: "#f44336",
-                "&:hover": {
-                  bgcolor: "rgba(244, 67, 54, 0.08)",
-                },
+                display: { xs: "none", md: "flex" },
+                gap: 1,
+                alignItems: "center",
+                mr: 2,
               }}
             >
-              <ListItemIcon sx={{ color: "#f44336", minWidth: 40 }}>
-                <LogoutIcon />
-              </ListItemIcon>
-              <ListItemText primary="Logout" />
-            </ListItem>
-          </List>
-        </Drawer>
-      </Toolbar>
-    </AppBar>
+              {navItems.map((item) => (
+                <Button
+                  key={item.text}
+                  color="inherit"
+                  startIcon={item.icon}
+                  component={RouterLink} // Use RouterLink
+                  to={item.path}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 500,
+                    "&:hover": { bgcolor: theme.palette.action.hover },
+                  }}
+                >
+                  {item.text}
+                </Button>
+              ))}
+            </Box>
+            {/* User Menu */}
+            <Box>
+              <Tooltip title="Account settings">
+                <IconButton
+                  onClick={handleMenuOpen}
+                  size="small"
+                  aria-controls={userMenuOpen ? "account-menu" : undefined}
+                  aria-haspopup="true"
+                  aria-expanded={userMenuOpen ? "true" : undefined}
+                >
+                  {/* Use standard AccountCircle or user image */}
+                  <Avatar
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      bgcolor: theme.palette.secondary.main,
+                    }}
+                  >
+                    <AccountCircle />
+                    {/* Or user initials */}
+                  </Avatar>
+                </IconButton>
+              </Tooltip>
+              <Menu
+                anchorEl={anchorElUser}
+                id="account-menu"
+                open={userMenuOpen}
+                onClose={handleMenuClose}
+                onClick={handleMenuClose} // Close menu on item click
+                PaperProps={{
+                  elevation: 2,
+                  sx: {
+                    overflow: "visible",
+                    filter: "drop-shadow(0px 1px 2px rgba(0,0,0,0.2))",
+                    mt: 1.5,
+                    "& .MuiAvatar-root": {
+                      width: 32,
+                      height: 32,
+                      ml: -0.5,
+                      mr: 1,
+                    },
+                    "&:before": {
+                      content: '""',
+                      display: "block",
+                      position: "absolute",
+                      top: 0,
+                      right: 14,
+                      width: 10,
+                      height: 10,
+                      bgcolor: "background.paper",
+                      transform: "translateY(-50%) rotate(45deg)",
+                      zIndex: 0,
+                    },
+                  },
+                }}
+                transformOrigin={{ horizontal: "right", vertical: "top" }}
+                anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+              >
+                {/* <MenuItem onClick={() => { handleMenuClose(); navigate('/profile'); }}> Profile </MenuItem> */}
+                {/* <Divider /> */}
+                <MenuItem onClick={handelNavigation} sx={{ color: "black" }}>
+                  <ListItemIcon>
+                    {" "}
+                    <LogoutIcon fontSize="small" color="black" />{" "}
+                  </ListItemIcon>
+                  Home
+                </MenuItem>
+                <MenuItem onClick={handleLogout} sx={{ color: "error.main" }}>
+                  <ListItemIcon>
+                    {" "}
+                    <LogoutIcon fontSize="small" color="error" />{" "}
+                  </ListItemIcon>
+                  Logout
+                </MenuItem>
+              </Menu>
+            </Box>
+          </Toolbar>
+        </Container>
+      </AppBar>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        anchor="left"
+        open={drawerOpen}
+        onClose={toggleDrawer(false)}
+        ModalProps={{ keepMounted: true }}
+        PaperProps={{ sx: { width: drawerWidth } }}
+        sx={{ display: { xs: "block", md: "none" } }} // Only on mobile
+      >
+        {drawerContent}
+      </Drawer>
+    </>
   );
 };
 

@@ -49,22 +49,24 @@ const ProjectForm = () => {
 
 
   const onSubmit = async (data) => {
-    console.log(data);
+
     
-    try
+    if (data.company_name === "")
     {
-    const res = await formSub(data).unwrap();
-    if (res?.bool == true)
-    {
-      showSnackbar("Form submitted successfully", "success");
-      navigate(-1);
-    }else
-    {
-     showSnackbar("Failed", "error");
+      data.company_name = "No Company";
     }
-  }catch(c){
-     showSnackbar("invalid credentials", "error");
-  }
+    
+      try {
+        const res = await formSub(data).unwrap();
+        if (res?.bool == true) {
+          showSnackbar("Form submitted successfully", "success");
+          navigate(-1);
+        } else {
+          showSnackbar("Failed", "error");
+        }
+      } catch (c) {
+        showSnackbar("invalid credentials", "error");
+      }
   
 };
 
@@ -146,7 +148,7 @@ const ProjectForm = () => {
                 },
               }}
             >
-              <span>Work with</span>
+              <span>Services of</span>
               El Sewedy IATS Students
             </Typography>
           </Fade>
@@ -236,15 +238,13 @@ const ProjectForm = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Company Name"
+                  label="Company Name(Optional)"
                   InputProps={{
                     startAdornment: (
                       <Business sx={{ mr: 1, color: "#1a1a1a" }} />
                     ),
                   }}
-                  {...register("company_name", {
-                    required: "Company name is required",
-                  })}
+                  {...register("company_name", {})}
                 />
               </Grid>
 
