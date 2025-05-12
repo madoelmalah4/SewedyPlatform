@@ -43,8 +43,12 @@ import {
   Add as AddIcon,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { selectUserRole } from "../Slices/AuthSlice/Authslice";
+import { useSelector } from "react-redux";
 
 const AchievementList = () => {
+
+  const role = useSelector(selectUserRole);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [
@@ -114,10 +118,19 @@ const AchievementList = () => {
   };
 
   // Handle edit navigation
-  const handleEdit = (achievement) => {
-    navigate(`/editachiev/${achievement.title}`);
+  const handleEdit = () => { 
+    if(role === "super admin")
+    {
+      navigate(`/admin/add`);
+    }else if (role === "grad admin") {
+      navigate(`/grad/add`);
+    } else {
+      navigate(`/`);
+    }
   };
 
+  console.log(role);
+  
   // Handle refresh
   const handleRefresh = () => {
     getAchievements();
@@ -181,7 +194,7 @@ const AchievementList = () => {
             transition: "0.3s",
           },
         }}
-        onClick={() => navigate("/addachiev")}
+        onClick={handleEdit}
       >
         Add Achievement
       </Button>

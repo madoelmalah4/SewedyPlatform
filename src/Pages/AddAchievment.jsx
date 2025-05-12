@@ -18,8 +18,12 @@ import {
   Divider,
 } from "@mui/material";
 import { PhotoCamera, Close } from "@mui/icons-material";
+import { useSelector } from "react-redux";
+import { selectUserRole } from "../Slices/AuthSlice/Authslice";
+import { useLayoutEffect } from "react";
 
 const AddAchievement = () => {
+  const userRole = useSelector(selectUserRole);
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",
@@ -30,6 +34,8 @@ const AddAchievement = () => {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
+
+  
 
   // Handle input changes
   const handleChange = (e) => {
@@ -87,6 +93,7 @@ const AddAchievement = () => {
     formDataToSend.append("description", formData.description);
     formDataToSend.append("image", formData.image);
 
+
     try {
       const response = await fetch("https://sewedy-platform1.runasp.net/api/Achivments/add", {
         method: "POST",
@@ -102,7 +109,14 @@ const AddAchievement = () => {
         }
       } else {
         setOpenSnackbar(true);
-        setTimeout(() => navigate("/acheivments"), 1500);
+        if(userRole === "super admin") {
+          setTimeout(() => navigate("/admin/acheivments"), 1500);
+        }else if(userRole === "grad admin") {
+            setTimeout(() => navigate("/grad/acheivments"), 1500);
+        }else
+        {
+          navigate("/")
+        }
       }
     } catch (error) {
       console.error("Submission Error:", error);
@@ -111,6 +125,17 @@ const AddAchievement = () => {
       setIsLoading(false);
     }
   };
+
+  const handleCancel = () => {
+    if (userRole === "super admin") {
+      navigate("/admin/acheivments");
+    } else if (userRole === "grad admin") {
+      navigate("/grad/acheivments");
+    } else {
+      navigate("/");
+    }
+  };
+
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
@@ -241,7 +266,7 @@ const AddAchievement = () => {
 
                   <Button
                     variant="outlined"
-                    onClick={() => navigate("/acheivments")}
+                    onClick={handleCancel}
                     disabled={isLoading}
                   >
                     Cancel

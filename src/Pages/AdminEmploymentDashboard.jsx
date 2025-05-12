@@ -1,7 +1,7 @@
 // src/components/AdminEmploymentDashboard.jsx
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Container,
@@ -21,56 +21,46 @@ import {
   TextField,
   InputAdornment,
   Link,
-  Button, // Keep Button for the toggle action
+  Button,
   Snackbar,
 } from "@mui/material";
 import {
-  useGetEmploymentQuery,
-  useEditEmploymentMutation, // Still using this hook, but its target is likely wrong
+  useLazyGetEmploymentQuery,
+  useEditEmploymentMutation,
 } from "../Slices/AuthSlice/AuthInjection.js"; // Adjust path if needed
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import { styled, useTheme } from "@mui/material/styles";
 
-// Styled components (no changes)
 const StyledTableHead = styled(TableHead)(({ theme }) => ({
-  /* ... */
+  backgroundColor: theme.palette.action.hover,
 }));
+
 const StyledTableRow = styled(TableRow)(({ theme }) => ({
-  /* ... */
+  "&:nth-of-type(odd)": {
+    backgroundColor: theme.palette.action.focus,
+  },
+  "&:last-child td, &:last-child th": {
+    border: 0,
+  },
+  "&:hover": {
+    backgroundColor: theme.palette.action.selected,
+  },
 }));
 
 const STATUS_MEETED = "Is Meeted";
 const STATUS_NOT_MEETED = "Not Meeted";
 
-// #########################################################################
-// ## IMPORTANT WARNING:                                                  ##
-// ## The status toggle button below now calls an API endpoint            ##
-// ## (PUT /api/Employment) that requires fields 'z' and 'email'.        ##
-// ## This component sends the required payload, BUT this endpoint is     ##
-// ## almost certainly NOT designed to update the employment status.      ##
-// ## The button click will likely NOT change the status displayed.       ##
-// ##                                                                     ##
-// ## Awaiting correction of the API endpoint details for status updates. ##
-// #########################################################################
-
 function AdminEmploymentDashboard() {
-  // Hooks (no changes)
-  const {
-    data: rawData,
-    isLoading,
-    isFetching: isFetchingList,
-    isError,
-    error,
-    refetch,
-  } = useGetEmploymentQuery(undefined, {});
+  const [
+    triggerGetEmployment,
+    { data: rawData, isLoading, isFetching, isError, error: fetchError },
+  ] = useLazyGetEmploymentQuery();
+
   const [editEmployment, { isLoading: isUpdatingStatus, error: updateError }] =
     useEditEmploymentMutation();
   const theme = useTheme();
 
-  // State (no changes)
   const [employmentData, setEmploymentData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -81,84 +71,101 @@ function AdminEmploymentDashboard() {
   const [snackbarMessage, setSnackbarMessage] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
 
-  // Effects (no changes)
   useEffect(() => {
-    if (rawData && rawData.data && Array.isArray(rawData.data)) {
+    triggerGetEmployment();
+  }, [triggerGetEmployment]);
+
+  useEffect(() => {
+    if (rawData?.data && Array.isArray(rawData.data)) {
       const dataWithTempIds = rawData.data.map((item, index) => ({
         ...item,
-        tempId: index,
+        tempId: item.id || `temp-${index}`,
       }));
       setEmploymentData(dataWithTempIds);
-    } else if (!isLoading && !isFetchingList) {
+    } else if (!isLoading && !isFetching) {
       setEmploymentData([]);
     }
-  }, [rawData, isLoading, isFetchingList]);
+  }, [rawData, isLoading, isFetching]);
 
   useEffect(() => {
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
     const dataToFilter = Array.isArray(employmentData) ? employmentData : [];
+
     const filtered = dataToFilter.filter((item) => {
+      if (!item) return false;
       return (
-        item &&
-        (item.company_Name?.toLowerCase().includes(lowerCaseSearchTerm) ||
-          item.name_own?.toLowerCase().includes(lowerCaseSearchTerm) ||
-          item.email_own?.toLowerCase().includes(lowerCaseSearchTerm) ||
-          item.email_company?.toLowerCase().includes(lowerCaseSearchTerm) ||
-          item.specialization?.toLowerCase().includes(lowerCaseSearchTerm) ||
-          item.type_of_Employment
-            ?.toLowerCase()
-            .includes(lowerCaseSearchTerm) ||
-          item.status?.toLowerCase().includes(lowerCaseSearchTerm) ||
-          item.address?.toLowerCase().includes(lowerCaseSearchTerm))
+        item.company_Name?.toLowerCase().includes(lowerCaseSearchTerm) ||
+        item.name_own?.toLowerCase().includes(lowerCaseSearchTerm) ||
+        item.email_own?.toLowerCase().includes(lowerCaseSearchTerm) ||
+        item.email_company?.toLowerCase().includes(lowerCaseSearchTerm) ||
+        item.specialization?.toLowerCase().includes(lowerCaseSearchTerm) ||
+        item.type_of_Employment?.toLowerCase().includes(lowerCaseSearchTerm) ||
+        item.status?.toLowerCase().includes(lowerCaseSearchTerm) ||
+        item.address?.toLowerCase().includes(lowerCaseSearchTerm)
       );
     });
+
     setFilteredData(filtered);
     setPage(0);
   }, [searchTerm, employmentData]);
 
-  // Handlers
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
+
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-  const handleRefresh = () => {
+
+  const handleRefresh = useCallback(() => {
     setSearchTerm("");
     setUpdatingRowId(null);
-    refetch();
-  };
+    triggerGetEmployment();
+  }, [triggerGetEmployment]);
 
-  // *** Handler modified to send { email, z } payload ***
   const handleToggleStatus = async (record) => {
-    const rowId = record.tempId; // Or record.id
+    const rowId = record.tempId;
+    if (!rowId || !record.email_own) {
+      console.error(
+        "Missing required data (id or email_own) for status toggle",
+        record
+      );
+      setSnackbarMessage("Cannot update status: Missing required data.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
+    }
+
     setUpdatingRowId(rowId);
 
-    const currentStatus = record.status;
-    const nextStatus = currentStatus;
+    const currentStatus = record.status || STATUS_NOT_MEETED;
+    const nextStatus =
+      currentStatus === STATUS_MEETED ? STATUS_MEETED : STATUS_NOT_MEETED;
 
-    // Create the payload with ONLY z and email, using email_company for email field
     const updatedRecordPayload = {
-      email: record.email_own, // Use the COMPANY email for the 'email' field
-      z: nextStatus, // Use the calculated nextStatus for the 'z' field
+      email: record.email_own,
+      z: nextStatus, // Send the *target* status in the 'z' field
     };
-    
 
     try {
       await editEmployment(updatedRecordPayload).unwrap();
-      // Success message is likely misleading
+
       setSnackbarMessage(
-        `API call successful for ${record.email_company} (Status may not be updated!)`
+        `API call to change status for ${record.company_Name || record.email_own} successful. Refreshing data...`
       );
       setSnackbarSeverity("success");
+      // Trigger a refetch after successful update attempt to get latest data
+      triggerGetEmployment();
     } catch (err) {
-      console.error("API call failed:", err); // Keep console log for errors
+      console.error("API call failed:", err);
       let errorMessage = "API call failed.";
       if (err?.data?.errors) {
         errorMessage = `Validation failed: ${Object.entries(err.data.errors)
           .map(([field, messages]) => `${field}: ${messages.join(", ")}`)
           .join("; ")}`;
+      } else if (err?.data?.message) {
+        errorMessage = err.data.message;
       } else if (err?.data?.title) {
         errorMessage = err.data.title;
       } else if (err?.error) {
@@ -179,22 +186,26 @@ function AdminEmploymentDashboard() {
     setSnackbarOpen(false);
   };
 
-  // Render Logic
   const renderContent = () => {
-    // Loading/Error/Empty checks (no changes)
-    if (isLoading)
+    if (isLoading) {
       return (
         <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
           <CircularProgress />
         </Box>
       );
-    if (isError)
+    }
+
+    if (isError && !isFetching) {
       return (
         <Alert severity="error" sx={{ m: 2 }}>
-          {error?.data?.message || error?.error || "Failed to load records."}
+          {fetchError?.data?.message ||
+            fetchError?.error ||
+            "Failed to load records."}
         </Alert>
       );
-    if (!employmentData.length && !isFetchingList)
+    }
+
+    if (!employmentData.length && !isFetching) {
       return (
         <Typography
           variant="body1"
@@ -207,7 +218,9 @@ function AdminEmploymentDashboard() {
           No records found.
         </Typography>
       );
-    if (!filteredData.length && searchTerm)
+    }
+
+    if (employmentData.length > 0 && !filteredData.length && searchTerm) {
       return (
         <Typography
           variant="body1"
@@ -220,14 +233,8 @@ function AdminEmploymentDashboard() {
           No records match search term "{searchTerm}".
         </Typography>
       );
-    if (isFetchingList && !isLoading)
-      return (
-        <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-          <CircularProgress />
-        </Box>
-      );
+    }
 
-    // Calculate paginated data
     const currentData = Array.isArray(filteredData) ? filteredData : [];
     const paginatedData = currentData.slice(
       page * rowsPerPage,
@@ -240,7 +247,6 @@ function AdminEmploymentDashboard() {
           <Table stickyHeader aria-label="employment records table">
             <StyledTableHead>
               <TableRow>
-                {/* Columns */}
                 <TableCell sx={{ minWidth: 150 }}>Company Name</TableCell>
                 <TableCell sx={{ minWidth: 150 }}>Submitter</TableCell>
                 <TableCell sx={{ minWidth: 170 }}>Submitter Email</TableCell>
@@ -252,19 +258,21 @@ function AdminEmploymentDashboard() {
                 <TableCell sx={{ minWidth: 150 }}>Specialization</TableCell>
                 <TableCell sx={{ minWidth: 100 }}>Amount/Size</TableCell>
                 <TableCell sx={{ minWidth: 120 }}>Employment Type</TableCell>
-                <TableCell sx={{ minWidth: 200 }}>Status & Action</TableCell>
+                <TableCell sx={{ minWidth: 280 }}>Status & Action</TableCell>
               </TableRow>
             </StyledTableHead>
             <TableBody>
               {paginatedData.map((record) => {
                 const uniqueRowKey = record?.tempId;
                 const isCurrentlyUpdating = updatingRowId === uniqueRowKey;
-                const currentStatus = record?.status || STATUS_NOT_MEETED;
-                const isMeeted = currentStatus === STATUS_MEETED ? "Communication Success" :"Awaiting Response";
+                const currentStatus = record?.status;
+                const isCommunicationSuccess = currentStatus === STATUS_MEETED;
+                const displayStatusText = isCommunicationSuccess
+                  ? "Communication Success"
+                  : "Awaiting Response";
 
                 return (
                   <StyledTableRow key={uniqueRowKey}>
-                    {/* Data Cells */}
                     <TableCell>{record?.company_Name || "N/A"}</TableCell>
                     <TableCell>{record?.name_own || "N/A"}</TableCell>
                     <TableCell>
@@ -305,7 +313,7 @@ function AdminEmploymentDashboard() {
                           rel="noopener noreferrer"
                           sx={{ textDecoration: "none" }}
                         >
-                          Link
+                          View Profile
                         </Link>
                       ) : (
                         "N/A"
@@ -316,61 +324,56 @@ function AdminEmploymentDashboard() {
                     <TableCell>{record?.amount || "N/A"}</TableCell>
                     <TableCell>{record?.type_of_Employment || "N/A"}</TableCell>
 
-                    {/* Status Cell with Toggle Button (still technically active but calls wrong endpoint) */}
                     <TableCell>
                       <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
                       >
                         <Typography
                           variant="body2"
+                          component="span"
                           sx={{
                             fontWeight: 500,
                             color: "#FFFFFF",
                             padding: "4px 8px",
                             borderRadius: "4px",
-                            backgroundColor:
-                              isMeeted === "Communication Success"
-                                ? theme.palette.success.light
-                                : theme.palette.error.light,
+                            backgroundColor: isCommunicationSuccess
+                              ? theme.palette.success.main
+                              : theme.palette.warning.main,
                             display: "inline-block",
-                            minWidth: "80px",
+                            minWidth: "130px",
+                            textAlign: "center",
                           }}
                         >
-                          {isMeeted}
+                          {displayStatusText}
                         </Typography>
                         <Tooltip
-                          title={
-                            isMeeted
-                              ? `Try setting ${STATUS_NOT_MEETED} (API Mismatch)`
-                              : `Try setting ${STATUS_MEETED} (API Mismatch)`
-                          }
+                          title={`Submit request to change status to ${isCommunicationSuccess ? STATUS_NOT_MEETED : STATUS_MEETED} for ${record.company_Name || record.email_own}`}
                         >
                           <span>
                             <Button
                               variant="outlined"
                               size="small"
-                              color={isMeeted ? "error" : "success"}
-                              startIcon={
-                                isCurrentlyUpdating ? (
-                                  <CircularProgress size={16} color="inherit" />
-                                ) : isMeeted === "Communication Success" ? (
-                                  <HighlightOffIcon />
-                                ) : (
-                                  <CheckCircleOutlineIcon />
-                                )
+                              color={
+                                isCommunicationSuccess ? "warning" : "success"
                               }
                               onClick={() => handleToggleStatus(record)}
-                              disabled={isCurrentlyUpdating || isUpdatingStatus}
+                              disabled={
+                                isCurrentlyUpdating ||
+                                isUpdatingStatus ||
+                                isFetching
+                              }
                               sx={{
                                 textTransform: "none",
                                 whiteSpace: "nowrap",
+                                minWidth: "180px", // Adjusted width for longer text
+                                ml: 1,
                               }}
                             >
                               {isCurrentlyUpdating
                                 ? "Saving..."
-                                : isMeeted === "Communication Success"
-                                  ? `Mark Awaiting Response`
-                                  : `Mark  Communication Success`}
+                                : isCommunicationSuccess
+                                  ? `Change to Awaiting Response`
+                                  : `Change to Communication Success`}
                             </Button>
                           </span>
                         </Tooltip>
@@ -397,7 +400,6 @@ function AdminEmploymentDashboard() {
     );
   };
 
-  // Main JSX Return
   return (
     <Box
       sx={{
@@ -429,7 +431,7 @@ function AdminEmploymentDashboard() {
             <Typography
               variant="h4"
               component="h1"
-              sx={{ color: theme.palette.text.primary }}
+              sx={{ color: theme.palette.text.primary, flexGrow: 1 }}
             >
               Employment Records
             </Typography>
@@ -448,7 +450,7 @@ function AdminEmploymentDashboard() {
                   ),
                 }}
                 sx={{
-                  width: { xs: "100%", sm: "300px" },
+                  width: { xs: "calc(100% - 60px)", sm: "300px" },
                   "& .MuiOutlinedInput-root": {
                     "& fieldset": { borderColor: theme.palette.divider },
                     "&:hover fieldset": {
@@ -464,22 +466,26 @@ function AdminEmploymentDashboard() {
                 }}
               />
               <Tooltip title="Refresh Data">
-                <IconButton
-                  onClick={handleRefresh}
-                  color="primary"
-                  disabled={isLoading || isFetchingList}
-                >
-                  <RefreshIcon />
-                </IconButton>
+                <span>
+                  <IconButton
+                    onClick={handleRefresh}
+                    color="primary"
+                    disabled={isLoading || isFetching}
+                  >
+                    <RefreshIcon />
+                  </IconButton>
+                </span>
               </Tooltip>
             </Box>
           </Box>
+
           {renderContent()}
         </Paper>
       </Container>
+
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={4000}
+        autoHideDuration={6000}
         onClose={handleCloseSnackbar}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >

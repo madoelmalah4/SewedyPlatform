@@ -28,7 +28,7 @@ import AdminEmploymentDashboard from "./Pages/AdminEmploymentDashboard";
 import ScrollToTop from "./Components/ScrollToTop";
 import SuperAdminRouteGuard from "./Layouts/SuperAdminRouteGuard";
 import AdminNavbarLayOut from "./Layouts/AdminNavbarLayOut";
-
+import AddAchievement from "./Pages/AddAchievment";
 const App = () => {
   return (
     <>
@@ -53,6 +53,8 @@ const App = () => {
               <Route path="/admin/orders" element={<Orders />} />
               <Route path="/admin/acheivments" element={<AchievementList />} />
               <Route path="/admin/studentsgrad" element={<StudentGrades />} />
+              <Route path="/admin/add" element={<AddAchievement />} />
+
               <Route
                 path="/admin/empdata"
                 element={<AdminEmploymentDashboard />}
@@ -68,6 +70,7 @@ const App = () => {
                 path="/tech/empdata"
                 element={<AdminEmploymentDashboard />}
               />
+
               {/* Add other tech admin routes */}
             </Route>
 
@@ -75,6 +78,8 @@ const App = () => {
             <Route element={<GradAdminProtectedLayout />}>
               <Route path="/grad/studentsgrad" element={<StudentGrades />} />
               <Route path="/grad/acheivments" element={<AchievementList />} />
+              <Route path="/grad/add" element={<AddAchievement />} />
+
               {/* Add other grad admin routes */}
             </Route>
           </Route>

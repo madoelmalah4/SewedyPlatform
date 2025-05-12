@@ -76,49 +76,59 @@ function EmploymentForm() {
     }
   };
 
-  const validateForm = () => {
-    const newErrors = {};
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
+   const validateForm = () => {
+     const newErrors = {};
+     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+     const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/;
+     // Regex for common LinkedIn profile URL patterns
+     // Allows for http/https, www optional, /in/, /pub/, /company/ paths, and profile names/company names
+     const linkedinRegex =
+       /^(https?:\/\/)?(www\.)?linkedin\.com\/(in|pub|company)\/[\w-]+\/?$/i;
 
-    if (!formData.company_Name.trim())
-      newErrors.company_Name = "Company name is required";
-    if (!formData.linkedin.trim())
-      newErrors.linkedin = "LinkedIn Profile URL is required";
-    if (!formData.email_company.trim()) {
-      newErrors.email_company = "Company email is required";
-    } else if (!emailRegex.test(formData.email_company)) {
-      newErrors.email_company = "Please enter a valid company email address";
-    }
-    if (!formData.phone_company.trim()) {
-      newErrors.phone_company = "Company phone is required";
-    } else if (!phoneRegex.test(formData.phone_company)) {
-      newErrors.phone_company = "Please enter a valid phone number";
-    }
-    if (!formData.address.trim())
-      newErrors.address = "Company address is required";
-    if (!formData.specialization)
-      // Check if a value is selected
-      newErrors.specialization = "Primary Industry/Specialization is required";
-    if (!formData.amount.trim())
-      newErrors.amount = "Amount of Hiring Students is required";
-    if (!formData.name_own.trim()) newErrors.name_own = "Your name is required";
-    if (!formData.email_own.trim()) {
-      newErrors.email_own = "Your email is required";
-    } else if (!emailRegex.test(formData.email_own)) {
-      newErrors.email_own = "Please enter a valid email address";
-    }
-    if (!formData.phone_own.trim()) {
-      newErrors.phone_own = "Your phone is required";
-    } else if (!phoneRegex.test(formData.phone_own)) {
-      newErrors.phone_own = "Please enter a valid phone number";
-    }
-    if (!formData.type_of_Employment)
-      newErrors.type_of_Employment = "Employment type is required";
+     if (!formData.company_Name.trim())
+       newErrors.company_Name = "Company name is required";
+     // Updated LinkedIn Validation
+     if (!formData.linkedin.trim()) {
+       newErrors.linkedin = "LinkedIn Profile URL is required";
+     } else if (!linkedinRegex.test(formData.linkedin.trim())) {
+       newErrors.linkedin =
+         "Please enter a valid LinkedIn Profile URL (e.g., https://www.linkedin.com/in/yourprofile)";
+     }
+     // ... rest of the validations
+     if (!formData.email_company.trim()) {
+       newErrors.email_company = "Company email is required";
+     } else if (!emailRegex.test(formData.email_company)) {
+       newErrors.email_company = "Please enter a valid company email address";
+     }
+     if (!formData.phone_company.trim()) {
+       newErrors.phone_company = "Company phone is required";
+     } else if (!phoneRegex.test(formData.phone_company)) {
+       newErrors.phone_company = "Please enter a valid phone number";
+     }
+     if (!formData.address.trim())
+       newErrors.address = "Company address is required";
+     if (!formData.specialization)
+       newErrors.specialization = "Primary Industry/Specialization is required";
+     if (!formData.amount.trim())
+       newErrors.amount = "Amount of Hiring Students is required";
+     if (!formData.name_own.trim())
+       newErrors.name_own = "Your name is required";
+     if (!formData.email_own.trim()) {
+       newErrors.email_own = "Your email is required";
+     } else if (!emailRegex.test(formData.email_own)) {
+       newErrors.email_own = "Please enter a valid email address";
+     }
+     if (!formData.phone_own.trim()) {
+       newErrors.phone_own = "Your phone is required";
+     } else if (!phoneRegex.test(formData.phone_own)) {
+       newErrors.phone_own = "Please enter a valid phone number";
+     }
+     if (!formData.type_of_Employment)
+       newErrors.type_of_Employment = "Employment type is required";
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+     setErrors(newErrors);
+     return Object.keys(newErrors).length === 0;
+   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();

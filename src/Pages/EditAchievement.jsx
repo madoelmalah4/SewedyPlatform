@@ -24,12 +24,16 @@ import {
   useGetAchievementByIdQuery,
   useUpdateAchievementMutation,
 } from "../Slices/AuthSlice/AuthInjection";
+import { selectUserRole } from "../Slices/AuthSlice/Authslice";
+import { useSelector } from "react-redux";
 
 const EditAchievement = () => {
   const { id } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-
+  const Role = useSelector(selectUserRole);
+  console.log(Role);
+  
   // Get achievement data either from location state or fetch it
   const initialAchievement = location.state?.achievement;
   const { data: fetchedAchievement, isLoading: isFetching } =

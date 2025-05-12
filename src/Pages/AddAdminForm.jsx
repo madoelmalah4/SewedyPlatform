@@ -19,7 +19,10 @@ import {
   IconButton,
 } from "@mui/material";
 // --- Ensure this import matches the corrected slice export ---
-import { useAddAdminUserMutation } from "../Slices/AuthSlice/AuthInjection.js"; // !! Adjust path !!
+import {
+  useAddAdminUserMutation,
+  useLazyGetUsersQuery,
+} from "../Slices/AuthSlice/AuthInjection.js"; // !! Adjust path !!
 import { useTheme } from "@mui/material/styles";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
@@ -40,9 +43,16 @@ function AddAdminForm() {
   const [snackbarSeverity, setSnackbarSeverity] = useState("success");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- Ensure this hook corresponds to the corrected slice definition ---
+  // --- Mutation Hook for adding a user ---
   const [addAdminUser, { isLoading: isMutationLoading }] =
     useAddAdminUserMutation();
+
+  // --- Lazy Query Hook for fetching users (triggered manually) ---
+  // We get the trigger function, and optionally the query state if needed elsewhere
+  const [
+    triggerGetUsers,
+    { isLoading: isLazyLoading, isFetching: isLazyFetching },
+  ] = useLazyGetUsersQuery();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -70,7 +80,7 @@ function AddAdminForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setIsSubmitting(true); // Use local submitting state for immediate UI feedback
 
     if (!validateForm()) {
       setSnackbarMessage("Please fix the errors in the form.");
@@ -80,7 +90,6 @@ function AddAdminForm() {
       return;
     }
 
-    // Payload is correct: { name, password, role }
     const payload = {
       name: formData.name.trim(),
       password: formData.password,
@@ -88,17 +97,25 @@ function AddAdminForm() {
     };
 
     try {
-      // Call the hook. RTK Query uses the slice definition to send via params.
       await addAdminUser(payload).unwrap();
 
-      setSnackbarMessage("Admin user added successfully!");
+      setSnackbarMessage(
+        "Admin user added successfully! Refreshing user list..."
+      );
       setSnackbarSeverity("success");
       setOpenSnackbar(true);
       setFormData({ name: "", password: "", role: "" });
       setShowPassword(false);
       setErrors({});
+
+      // --- Trigger the lazy query after successful addition ---
+      // This will refetch the user list, updating the cache.
+      // Other components using useGetUsersQuery or useLazyGetUsersQuery
+      // will potentially see the updated data.
+      console.log("Triggering lazy user list fetch after adding admin...");
+      triggerGetUsers(); // Call the trigger function
     } catch (error) {
-      console.error("Add admin error:", error); // Keep for debugging
+      console.error("Add admin error:", error);
       const errorMessage =
         error?.data?.title ||
         error?.data?.message ||
@@ -119,13 +136,14 @@ function AddAdminForm() {
       setSnackbarSeverity("error");
       setOpenSnackbar(true);
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // Reset local submitting state
     }
   };
 
-  const isProcessing = isMutationLoading || isSubmitting;
+  // Combine loading states if needed, e.g., disable button if mutation OR lazy fetch is happening
+  const isProcessing = isMutationLoading || isSubmitting || isLazyFetching;
+  // const isProcessing = isMutationLoading || isSubmitting; // Or just rely on mutation loading
 
-  // --- JSX Structure ---
   return (
     <Container maxWidth="md">
       <Paper
@@ -163,6 +181,7 @@ function AddAdminForm() {
                 error={!!errors.name}
                 helperText={errors.name}
                 autoComplete="name"
+                disabled={isProcessing} // Disable fields during processing
               />
             </Grid>
             <Grid item xs={12}>
@@ -178,19 +197,19 @@ function AddAdminForm() {
                 error={!!errors.password}
                 helperText={errors.password || "Minimum 6 characters"}
                 autoComplete="new-password"
+                disabled={isProcessing} // Disable fields during processing
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
-                      {" "}
                       <IconButton
                         aria-label="toggle password visibility"
                         onClick={handleClickShowPassword}
                         onMouseDown={handleMouseDownPassword}
                         edge="end"
+                        disabled={isProcessing} // Disable icon button too
                       >
-                        {" "}
-                        {showPassword ? <VisibilityOff /> : <Visibility />}{" "}
-                      </IconButton>{" "}
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
                     </InputAdornment>
                   ),
                 }}
@@ -208,6 +227,7 @@ function AddAdminForm() {
                 onChange={handleChange}
                 error={!!errors.role}
                 helperText={errors.role || "Select user's permission level"}
+                disabled={isProcessing} // Disable fields during processing
               >
                 {adminRoles.map((option) => (
                   <MenuItem
@@ -228,16 +248,20 @@ function AddAdminForm() {
               <Button
                 type="submit"
                 variant="contained"
-                disabled={isProcessing}
+                disabled={isProcessing} // Use combined processing state
                 sx={{ minWidth: 150, py: 1.2, px: 3 }}
                 startIcon={
-                  isProcessing ? (
+                  isProcessing ? ( // Show spinner if mutation or lazy fetch is running
                     <CircularProgress size={20} color="inherit" />
                   ) : null
                 }
               >
-                {" "}
-                {isProcessing ? "Adding User..." : "Add User"}{" "}
+                {/* Adjust button text based on state */}
+                {isMutationLoading || isSubmitting
+                  ? "Adding User..."
+                  : isLazyFetching
+                    ? "Refreshing..."
+                    : "Add User"}
               </Button>
             </Grid>
           </Grid>

@@ -110,6 +110,7 @@ export const authApiSlice = api.injectEndpoints({
             }),
             invalidatesTags: ["User", "Admin"],
         }),
+       
 
     }),
 });
@@ -127,5 +128,7 @@ export const {
     useEditEmploymentMutation,
     useAddAdminUserMutation,
     useGetUsersQuery,
-    useDeleteUserMutation
+    useLazyGetUsersQuery,
+    useDeleteUserMutation,
+    useLazyGetEmploymentQuery
 } = authApiSlice;
