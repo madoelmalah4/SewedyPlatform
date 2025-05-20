@@ -29,25 +29,39 @@ import {
   InfoOutlined,
   ErrorOutline,
   WarningAmber,
+  Block,
+  WrongLocation, // Icon for grade mismatch
 } from "@mui/icons-material";
+import { useParams } from "react-router-dom"; // Make sure this is installed and router is set up
 
-import { db } from "../firebaseConfig";
+import { db } from "../firebaseConfig"; // Adjust path if needed
 import { doc, getDoc } from "firebase/firestore";
 
+// --- Configuration ---
 const COLLECTION_NAME = "gradeData";
-const GRADES_TO_FETCH = ["Junior", "Wheeler", "Senior"];
+const ALLOWED_GRADES = ["Junior", "Wheeler", "Senior"]; // Canonical names
 
-const NATIONAL_ID_KEY = "National ID";
+// !!! IMPORTANT: Verify these EXACTLY match the field names in your Firestore documents !!!
+const NATIONAL_ID_KEY = "National ID"; // Case-sensitive key for the National ID
+const GRADE_LEVEL_KEY = "Grade Level"; // <--- !!! VERIFY THIS KEY NAME !!!
 
+// Metadata keys to exclude when displaying grades in the table
 const METADATA_KEYS = new Set([
   NATIONAL_ID_KEY,
+  GRADE_LEVEL_KEY, // Also exclude the grade level key itself from the subjects table
   "Name",
-  "Grade Level",
-  "Student ID",
+  "Student ID", // Add any other variations if necessary
   "ID",
   "id",
 ]);
 
+// Helper to capitalize first letter
+const capitalize = (s) =>
+  s && typeof s === "string"
+    ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+    : "";
+
+// --- Basic Styled Components ---
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
     backgroundColor: theme.palette.grey[200],
@@ -73,169 +87,304 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
 }));
 
-export default function StudentsForm() {
+// --- Component ---
+// Renamed for clarity in previous step, keep if you like or revert to StudentsForm
+export default function StudentGradeSearchByGradeStrict() {
+  const { grade: rawGradeParam } = useParams();
+
+  // --- State ---
+  const [currentGrade, setCurrentGrade] = useState(null);
   const [nationalId, setNationalId] = useState("");
-  const [studentData, setStudentData] = useState(null);
+  const [studentData, setStudentData] = useState(null); // Found student matching currentGrade
+  const [gradeData, setGradeData] = useState([]); // Raw data fetched for currentGrade document
   const [searchLoading, setSearchLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(null); // General errors
+  const [searchFeedback, setSearchFeedback] = useState(null); // Specific feedback for search results
   const [searched, setSearched] = useState(false);
-  const [allGradesData, setAllGradesData] = useState(
-    GRADES_TO_FETCH.reduce((acc, grade) => ({ ...acc, [grade]: [] }), {})
-  );
 
-  const fetchAllGradesData = useCallback(async () => {
-    setFetchLoading(true);
-    setError(null);
-    setStudentData(null);
+  // --- Security Warning (Still relevant) ---
+  // Consider a backend Cloud Function search for optimal security/performance.
+  // --- End Security Warning ---
+
+  // --- Validate URL Parameter ---
+  useEffect(() => {
+    const gradeParamNormalized = capitalize(rawGradeParam);
+    if (ALLOWED_GRADES.includes(gradeParamNormalized)) {
+      console.log(
+        `URL parameter valid: Setting current grade to ${gradeParamNormalized}`
+      );
+      setCurrentGrade(gradeParamNormalized);
+      setError(null);
+      setSearchFeedback(null);
+    } else {
+      console.warn(`Invalid or missing grade parameter: "${rawGradeParam}"`);
+      setCurrentGrade(null);
+      setFetchLoading(false); // Stop loading if grade is invalid
+      setError(`Invalid grade in URL. Allowed: ${ALLOWED_GRADES.join(", ")}.`);
+      setGradeData([]);
+      setStudentData(null);
+      setSearchFeedback(null);
+    }
+    // Reset search state when grade changes
     setSearched(false);
-    const fetchedData = {};
-    let encounteredError = null;
+    setNationalId("");
+    setStudentData(null); // Clear student details if grade changes
+  }, [rawGradeParam]);
 
-    const fetchPromises = GRADES_TO_FETCH.map(async (gradeLevel) => {
-      const docRef = doc(db, COLLECTION_NAME, gradeLevel);
-      try {
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const cloudData = docSnap.data();
-          if (cloudData && Array.isArray(cloudData.data)) {
-            fetchedData[gradeLevel] = cloudData.data.filter(
-              (row) =>
-                row && typeof row === "object" && Object.keys(row).length > 0
-            );
-          } else {
-            fetchedData[gradeLevel] = [];
-          }
-        } else {
-          fetchedData[gradeLevel] = [];
-        }
-      } catch (err) {
-        encounteredError = `Failed to load data for ${gradeLevel}.`;
-        fetchedData[gradeLevel] = [];
-      }
-    });
+  // --- Firestore Data Fetching (Single Grade Document) ---
+  const fetchGradeData = useCallback(async (gradeToFetch) => {
+    if (!gradeToFetch) return;
 
+    console.log(`Fetching data for grade document: ${gradeToFetch}...`);
+    setFetchLoading(true);
+    setError(null); // Clear general errors on new fetch
+    setSearchFeedback(null); // Clear specific search feedback
+    setStudentData(null); // Clear previous student
+    setSearched(false); // Reset search status
+    setGradeData([]); // Clear previous raw grade data
+
+    const docRef = doc(db, COLLECTION_NAME, gradeToFetch);
     try {
-      await Promise.all(fetchPromises);
-      setAllGradesData(fetchedData);
-      if (encounteredError) {
-        setError(encounteredError + " Some data may be unavailable.");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const cloudData = docSnap.data();
+        // Validate the structure basic check
+        if (cloudData && Array.isArray(cloudData.data)) {
+          const validData = cloudData.data.filter(
+            (row) =>
+              row && typeof row === "object" && Object.keys(row).length > 0
+          );
+          setGradeData(validData); // Store the raw fetched data for searching
+          console.log(
+            `Fetched ${validData.length} rows from ${gradeToFetch} document.`
+          );
+        } else {
+          console.warn(
+            `Invalid or missing 'data' array in Firestore doc for ${gradeToFetch}.`
+          );
+          setGradeData([]); // Set empty data
+          // Set an error state to inform the user about potential data issues
+          setError(
+            `Data structure issue for ${gradeToFetch}. Check Firestore.`
+          );
+        }
+      } else {
+        console.log(`No Firestore document found for ${gradeToFetch}.`);
+        setGradeData([]); // Set empty data
+        // Set an error state if the document itself is missing
+        setError(
+          `No data document found for ${gradeToFetch} grade in Firestore.`
+        );
       }
     } catch (err) {
-      setError("An critical error occurred while fetching data.");
-      setAllGradesData(
-        GRADES_TO_FETCH.reduce((acc, grade) => ({ ...acc, [grade]: [] }), {})
+      console.error(`Error fetching Firestore data for ${gradeToFetch}:`, err);
+      setError(
+        `Failed to load data for ${gradeToFetch}. Check connection or permissions.`
       );
+      setGradeData([]); // Ensure data is cleared on error
     } finally {
-      setFetchLoading(false);
+      setFetchLoading(false); // Stop loading indicator
     }
-  }, []);
+  }, []); // Dependencies: db, COLLECTION_NAME implicitly from constants
 
+  // Fetch data when currentGrade is set and valid
   useEffect(() => {
-    fetchAllGradesData();
-  }, [fetchAllGradesData]);
+    if (currentGrade) {
+      fetchGradeData(currentGrade);
+    }
+    // If currentGrade is null (invalid URL), fetchGradeData won't run.
+  }, [currentGrade, fetchGradeData]);
 
+  // --- UI and Search Logic ---
+
+  // Helper to get theme color based on grade
   const getGradeLevelColor = useCallback(
     (gradeLevel) => {
-      const g = gradeLevel || studentData?.foundInGrade;
+      const g = gradeLevel || currentGrade;
       switch (g) {
         case "Junior":
-          return "#4CAF50";
+          return "#4CAF50"; // Green
         case "Wheeler":
-          return "#E6B325";
+          return "#E6B325"; // Yellow/Gold
         case "Senior":
-          return "#F44336";
+          return "#F44336"; // Red
         default:
-          return "#9E9E9E";
+          return "#9E9E9E"; // Grey
       }
     },
-    [studentData]
+    [currentGrade] // Depends on the current grade context
   );
 
+  // Robust National ID comparison
   const compareNationalIds = (storedIdValue, inputIdTrimmed) => {
     if (
       storedIdValue === null ||
       storedIdValue === undefined ||
       storedIdValue === ""
-    ) {
+    )
       return false;
-    }
-    if (!inputIdTrimmed) {
-      return false;
-    }
+    if (!inputIdTrimmed) return false;
     const storedIdStr = String(storedIdValue).trim();
-    if (storedIdStr.length === 0) {
-      return false;
-    }
+    if (storedIdStr.length === 0) return false;
     return storedIdStr === inputIdTrimmed;
   };
 
+  // Search handler with STRICT grade validation
   const handleSearch = useCallback(() => {
     const trimmedId = nationalId.trim();
     setSearchLoading(true);
-    setError(null);
-    setStudentData(null);
-    setSearched(true);
+    setError(null); // Clear general errors on new search
+    setSearchFeedback(null); // Clear previous search feedback
+    setStudentData(null); // Clear previous student data
+    setSearched(true); // Mark that search attempt was made
 
+    // --- Validations ---
+    if (!currentGrade) {
+      // This case should ideally be prevented by disabling the button, but double-check
+      setError("Cannot search: No valid grade selected.");
+      setSearchLoading(false);
+      return;
+    }
     if (!trimmedId) {
-      setError("Please enter a National ID.");
+      setSearchFeedback({
+        type: "error",
+        message: "Please enter a National ID.",
+      });
       setSearchLoading(false);
       return;
     }
-
     if (fetchLoading) {
-      setError("Student data is still loading, please wait.");
+      // Prevent search if data is still loading initially
+      setSearchFeedback({
+        type: "warning",
+        message: "Student data is loading, please wait.",
+      });
       setSearchLoading(false);
       return;
     }
-
-    setTimeout(() => {
-      let foundStudent = null;
-      let foundInGrade = null;
-
-      for (const gradeLevel of GRADES_TO_FETCH) {
-        const gradeData = allGradesData[gradeLevel];
-        if (Array.isArray(gradeData) && gradeData.length > 0) {
-          try {
-            foundStudent = gradeData.find((student) => {
-              const studentNatId = student?.[NATIONAL_ID_KEY];
-              return compareNationalIds(studentNatId, trimmedId);
-            });
-
-            if (foundStudent) {
-              foundInGrade = gradeLevel;
-              break;
-            }
-          } catch (searchErr) {
-            setError(
-              `An error occurred searching ${gradeLevel}. Results may be incomplete.`
-            );
-          }
-        }
-      }
-
-      if (foundStudent) {
-        setStudentData({ data: foundStudent, foundInGrade: foundInGrade });
-      }
+    // Check if gradeData array is actually empty (e.g., Firestore doc was empty or had bad structure)
+    if (gradeData.length === 0 && !fetchLoading) {
+      setSearchFeedback({
+        type: "info",
+        message: `No student data available to search within the ${currentGrade} grade document.`,
+      });
       setSearchLoading(false);
-    }, 150);
-  }, [nationalId, allGradesData, fetchLoading]);
+      return;
+    }
+    // --- End Validations ---
 
+    console.log(
+      `Searching for National ID: "${trimmedId}" within data fetched for ${currentGrade}...`
+    );
+
+    // Simulate slight delay for UX feedback, prevents instant flash
+    setTimeout(() => {
+      let foundStudentRaw = null;
+      let finalStudentData = null;
+      let feedback = null;
+
+      try {
+        // Step 1: Find student by National ID within the fetched gradeData
+        foundStudentRaw = gradeData.find((student) => {
+          const studentNatId = student?.[NATIONAL_ID_KEY];
+          return compareNationalIds(studentNatId, trimmedId);
+        });
+
+        // Step 2: *** CRUCIAL VALIDATION *** Check if found and if grade matches
+        if (foundStudentRaw) {
+          console.log(`Found student record by ID:`, foundStudentRaw);
+          const studentActualGrade = foundStudentRaw[GRADE_LEVEL_KEY];
+          // Normalize the grade found in the record for comparison
+          const studentActualGradeNormalized = capitalize(studentActualGrade);
+
+          // Compare normalized stored grade with the current page's grade (already normalized)
+          if (studentActualGradeNormalized === currentGrade) {
+            console.log(
+              `Grade match confirmed: ${studentActualGradeNormalized} === ${currentGrade}.`
+            );
+            // Success! Store the validated student data
+            finalStudentData = {
+              data: foundStudentRaw,
+              foundInGrade: currentGrade,
+            };
+            // No specific feedback message needed for success, the card will show
+          } else {
+            // Mismatch found! Provide specific feedback.
+            console.warn(
+              `Student found by ID, but grade mismatch: Record Grade='${studentActualGrade}' (Normalized: ${studentActualGradeNormalized}), Page Grade='${currentGrade}'.`
+            );
+            feedback = {
+              type: "warning", // Use warning severity
+              message: `Student with ID '${trimmedId}' found, but belongs to the '${studentActualGradeNormalized || "Unknown"}' grade, not '${currentGrade}'.`,
+            };
+            // Do NOT set finalStudentData here - we don't display mismatching students
+          }
+        } else {
+          // Step 3: Handle case where ID was not found at all in the fetched data
+          console.log(
+            `Student with National ID "${trimmedId}" not found in data fetched for ${currentGrade}.`
+          );
+          feedback = {
+            type: "info", // Use info severity
+            message: `No student found with National ID '${trimmedId}' in the ${currentGrade} grade. Please verify the ID.`,
+          };
+        }
+      } catch (searchErr) {
+        // Catch unexpected errors during the find/comparison process
+        console.error(
+          `Error during search within ${currentGrade} data:`,
+          searchErr
+        );
+        feedback = {
+          type: "error",
+          message: `An error occurred during the search.`,
+        };
+        finalStudentData = null; // Ensure no stale data is shown
+      } finally {
+        // Update state based on search outcome
+        setStudentData(finalStudentData); // Will be null if not found or mismatch
+        setSearchFeedback(feedback); // Set the specific outcome message
+        setSearchLoading(false); // Stop search loading indicator
+      }
+    }, 150); // Small delay
+  }, [nationalId, gradeData, currentGrade, fetchLoading]); // Dependencies for the search callback
+
+  // Handle Enter key press in the input field
   const handleKeyPress = useCallback(
     (e) => {
+      // Trigger search only if Enter is pressed, not loading, and input has text
       if (
         e.key === "Enter" &&
         !searchLoading &&
         !fetchLoading &&
-        nationalId.trim()
+        nationalId.trim() &&
+        currentGrade // Ensure grade is valid too
       ) {
         handleSearch();
       }
     },
-    [handleSearch, searchLoading, fetchLoading, nationalId]
+    [handleSearch, searchLoading, fetchLoading, nationalId, currentGrade]
   );
 
+  // --- Render Logic ---
+
+  // Component to render feedback messages (loading, errors, search results)
   const renderFeedback = () => {
+    // Priority 1: Invalid Grade from URL parameter
+    if (!fetchLoading && !currentGrade) {
+      return (
+        <Alert
+          severity="error"
+          sx={{ mb: 2 }}
+          icon={<Block fontSize="inherit" />}
+        >
+          {error || "No valid grade specified in the URL."}
+        </Alert>
+      );
+    }
+
+    // Priority 2: Initial Data Loading for the selected grade
     if (fetchLoading) {
       return (
         <Box
@@ -249,11 +398,29 @@ export default function StudentsForm() {
         >
           <CircularProgress size={24} />
           <Typography color="text.secondary">
-            Loading student database...
+            Loading {currentGrade} student data...
           </Typography>
         </Box>
       );
     }
+
+    // Priority 3: General Fetch/Setup Errors (shown if no search is active/completed)
+    // e.g., Firestore connection error, missing document, bad data structure
+    if (error && !searchLoading && !searchFeedback) {
+      // Show general error only if no specific search feedback exists
+      return (
+        <Alert
+          severity="error" // Usually fetch/setup errors are critical
+          sx={{ mb: 2 }}
+          variant="outlined"
+          icon={<ErrorOutline fontSize="inherit" />}
+        >
+          {error} {/* Display the specific error message */}
+        </Alert>
+      );
+    }
+
+    // Priority 4: Search in Progress
     if (searchLoading) {
       return (
         <Box
@@ -266,126 +433,73 @@ export default function StudentsForm() {
           }}
         >
           <CircularProgress size={24} />
-          <Typography color="text.secondary">Searching...</Typography>
+          <Typography color="text.secondary">
+            Searching in {currentGrade}...
+          </Typography>
         </Box>
       );
     }
+
+    // Priority 5: Specific Search Feedback (after search completes)
+    // This includes "not found", "found but wrong grade", "input error"
+    if (searched && searchFeedback && !searchLoading) {
+      // Determine icon based on feedback type
+      let icon = <InfoOutlined fontSize="inherit" />; // Default for info
+      if (searchFeedback.type === "error")
+        icon = <ErrorOutline fontSize="inherit" />;
+      // Use specific icon for the grade mismatch warning
+      if (searchFeedback.type === "warning")
+        icon = <WrongLocation fontSize="inherit" />;
+
+      return (
+        <Alert
+          severity={searchFeedback.type} // 'info', 'warning', or 'error'
+          sx={{ mb: 2 }}
+          variant="outlined"
+          icon={icon}
+        >
+          {searchFeedback.message}
+        </Alert>
+      );
+    }
+
+    // Priority 6: Data loaded successfully, no search yet attempted, or previous search was successful (card shown)
     if (
-      error &&
-      !error.includes("unavailable") &&
-      !error.includes("incomplete")
+      !searched &&
+      !studentData &&
+      !fetchLoading &&
+      !error &&
+      !searchFeedback &&
+      currentGrade
     ) {
-      return (
-        <Alert
-          severity="error"
-          sx={{ mb: 2 }}
-          variant="outlined"
-          icon={<ErrorOutline fontSize="inherit" />}
-        >
-          {error}
-        </Alert>
-      );
-    }
-    if (
-      error &&
-      (error.includes("unavailable") || error.includes("incomplete"))
-    ) {
-      return (
-        <Alert
-          severity="warning"
-          sx={{ mb: 2 }}
-          variant="outlined"
-          icon={<WarningAmber fontSize="inherit" />}
-        >
-          {error}
-        </Alert>
-      );
-    }
-    if (searched && !studentData) {
-      return (
-        <Alert
-          severity="info"
-          sx={{ mb: 2 }}
-          variant="outlined"
-          icon={<InfoOutlined fontSize="inherit" />}
-        >
-          No student found with the entered National ID '{nationalId}'. Please
-          verify the ID and try again.
-        </Alert>
-      );
-    }
-    if (!searched && !studentData && !fetchLoading) {
+      // Show initial prompt only if everything is ready and no search has happened
       return (
         <Typography
           sx={{ textAlign: "center", color: "text.secondary", mt: 4, mb: 2 }}
         >
-          Enter a student's National ID above and click Search.
+          Enter a student's National ID to search within the {currentGrade}{" "}
+          grade.
         </Typography>
       );
     }
+
+    // If studentData is correctly set (found and validated), the card will render below.
+    // No specific message needed here in that case.
     return null;
   };
 
-  const { subjectsForDisplay, totalObtainedMarks, totalFullMarks } =
-    useMemo(() => {
-      const details = studentData?.data;
-      if (!details) {
-        return {
-          subjectsForDisplay: [],
-          totalObtainedMarks: 0,
-          totalFullMarks: 0,
-        };
-      }
+  // Memoize the filtering of subjects to display in the table
+  const subjectsToDisplay = useMemo(() => {
+    const details = studentData?.data; // Only use data if studentData is set (meaning valid student found)
+    if (!details) return [];
+    // Filter out keys defined in METADATA_KEYS (including NATIONAL_ID_KEY and GRADE_LEVEL_KEY)
+    return Object.entries(details).filter(([key]) => !METADATA_KEYS.has(key));
+  }, [studentData]); // Recalculate only when studentData changes
 
-      let currentTotalObtained = 0;
-      let currentTotalFull = 0;
-      const displayItems = [];
-
-      Object.entries(details).forEach(([key, studentMarkValue]) => {
-        if (METADATA_KEYS.has(key)) {
-          return;
-        }
-
-        const keyParts = key.split("/");
-        if (keyParts.length > 1) {
-          const subjectName = keyParts.slice(0, -1).join("/").trim(); // Handle cases like "Subject A/B/50"
-          const potentialFullMarkStr = keyParts[keyParts.length - 1].trim();
-          const parsedFullMark = parseFloat(potentialFullMarkStr);
-
-          if (!isNaN(parsedFullMark) && subjectName) {
-            // Ensure subjectName is also present
-            currentTotalFull += parsedFullMark;
-
-            let obtainedMarkForDisplay = "N/A";
-            const parsedStudentMark = parseFloat(
-              String(studentMarkValue).trim()
-            );
-
-            if (!isNaN(parsedStudentMark)) {
-              currentTotalObtained += parsedStudentMark;
-              obtainedMarkForDisplay = parsedStudentMark;
-            }
-
-            displayItems.push({
-              originalKey: key, // Keep original key for React's key prop
-              subjectName: subjectName,
-              obtainedMark: obtainedMarkForDisplay,
-              fullMark: parsedFullMark,
-            });
-          }
-        }
-      });
-
-      return {
-        subjectsForDisplay: displayItems,
-        totalObtainedMarks: currentTotalObtained,
-        totalFullMarks: currentTotalFull,
-      };
-    }, [studentData]);
-
+  // Get the validated student details (will be null if not found or mismatch)
   const foundStudentDetails = studentData?.data;
-  const foundStudentGrade = studentData?.foundInGrade;
 
+  // --- JSX Structure ---
   return (
     <Box sx={{ padding: { xs: 2, sm: 3 }, maxWidth: "800px", margin: "auto" }}>
       <Typography
@@ -394,9 +508,11 @@ export default function StudentsForm() {
         gutterBottom
         sx={{ textAlign: "center", mb: 3, mt: 2, fontWeight: "medium" }}
       >
-        Student Grade Lookup
+        {/* Dynamic Title based on valid grade */}
+        {currentGrade ? `${currentGrade} Grade Lookup` : "Student Grade Lookup"}
       </Typography>
 
+      {/* Search Input Area */}
       <Paper
         elevation={2}
         sx={{
@@ -404,7 +520,7 @@ export default function StudentsForm() {
           display: "flex",
           gap: 1.5,
           mb: 3,
-          flexWrap: "nowrap",
+          flexWrap: "nowrap", // Prevent wrapping
           alignItems: "center",
           borderRadius: 2,
         }}
@@ -417,24 +533,31 @@ export default function StudentsForm() {
           value={nationalId}
           onChange={(e) => setNationalId(e.target.value)}
           onKeyPress={handleKeyPress}
-          disabled={fetchLoading || searchLoading}
+          // Disable input if fetching initial data, searching, or if the grade context is invalid
+          disabled={fetchLoading || searchLoading || !currentGrade}
           aria-label="Student National ID Input"
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
                 <Search
-                  color={fetchLoading || searchLoading ? "disabled" : "action"}
+                  color={
+                    fetchLoading || searchLoading || !currentGrade
+                      ? "disabled"
+                      : "action"
+                  }
                 />
               </InputAdornment>
             ),
             sx: {
               borderRadius: "8px",
+              // Subtle background, changes when disabled
               backgroundColor:
-                fetchLoading || searchLoading
+                fetchLoading || searchLoading || !currentGrade
                   ? "action.disabledBackground"
                   : "rgba(0, 0, 0, 0.04)",
-              "& fieldset": { border: "none" },
+              "& fieldset": { border: "none" }, // Remove default outline
               "& input::placeholder": {
+                // Style placeholder text
                 fontSize: "0.95rem",
                 color: "text.secondary",
                 opacity: 0.8,
@@ -442,27 +565,46 @@ export default function StudentsForm() {
             },
           }}
         />
-        <Tooltip title="Search across all grade levels" placement="top">
+        <Tooltip
+          title={
+            currentGrade
+              ? `Search within ${currentGrade} grade`
+              : "Select a valid grade in URL to enable search"
+          }
+          placement="top"
+        >
+          {/* Wrap button in span for Tooltip to work correctly when disabled */}
           <span>
             <Button
               variant="contained"
               onClick={handleSearch}
-              disabled={fetchLoading || searchLoading || !nationalId.trim()}
+              // Disable button if loading, searching, input is empty, or grade is invalid
+              disabled={
+                fetchLoading ||
+                searchLoading ||
+                !nationalId.trim() ||
+                !currentGrade
+              }
               size="large"
               sx={{
                 minWidth: "100px",
                 px: 2.5,
-                backgroundColor: "#1976d2",
+                backgroundColor: "#1976d2", // Standard blue
                 color: "white",
                 borderRadius: "8px",
-                "&:hover": { backgroundColor: "#115293" },
+                "&:hover": { backgroundColor: "#115293" }, // Darker hover
+                // Explicit disabled styles for clarity
                 "&.Mui-disabled": {
                   backgroundColor: "action.disabledBackground",
                   color: "action.disabled",
                   cursor: "not-allowed",
                 },
               }}
-              aria-label="Search for student grades"
+              aria-label={
+                currentGrade
+                  ? `Search ${currentGrade} for student grades`
+                  : "Search disabled"
+              }
             >
               {searchLoading ? (
                 <CircularProgress size={24} color="inherit" />
@@ -474,21 +616,33 @@ export default function StudentsForm() {
         </Tooltip>
       </Paper>
 
+      {/* Results / Feedback Area */}
       <Box sx={{ mt: 2, minHeight: "150px" }}>
+        {" "}
+        {/* Min height prevents layout jumps */}
+        {/* Render dynamic feedback messages here */}
         {renderFeedback()}
+        {/* Student Data Card - Renders only if studentData is populated (found and validated) */}
         <Fade
-          in={!fetchLoading && !searchLoading && !!foundStudentDetails}
+          in={
+            !fetchLoading &&
+            !searchLoading &&
+            !!foundStudentDetails &&
+            !!currentGrade
+          }
           timeout={400}
         >
-          {foundStudentDetails ? (
+          {/* Conditional rendering inside Fade prevents rendering empty card */}
+          {foundStudentDetails && currentGrade ? (
             <Card
               elevation={3}
               sx={{ borderRadius: 2, overflow: "hidden", mt: 2 }}
             >
+              {/* Card Header with Grade Color */}
               <Box
                 sx={{
                   p: { xs: 1.5, md: 2 },
-                  backgroundColor: getGradeLevelColor(foundStudentGrade),
+                  backgroundColor: getGradeLevelColor(currentGrade), // Color based on the page's grade context
                   color: "primary.contrastText",
                   display: "flex",
                   flexDirection: "column",
@@ -499,20 +653,25 @@ export default function StudentsForm() {
                   component="h2"
                   sx={{ fontWeight: "medium" }}
                 >
+                  {/* Use found student's name, provide fallback */}
                   {foundStudentDetails.Name ?? "Name Not Available"}
                 </Typography>
                 <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                  {/* Use constant for National ID key */}
                   National ID: {foundStudentDetails[NATIONAL_ID_KEY] ?? "N/A"}
                 </Typography>
-                {(foundStudentDetails["Grade Level"] || foundStudentGrade) && (
-                  <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-                    Grade Level:{" "}
-                    {foundStudentDetails["Grade Level"] || foundStudentGrade}
-                  </Typography>
-                )}
+                <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
+                  {/* Display the grade context of the current page */}
+                  Grade Level: {currentGrade}
+                  {/* Optional: Show original grade from data if different and exists, for debugging */}
+                  {/* {foundStudentDetails[GRADE_LEVEL_KEY] && foundStudentDetails[GRADE_LEVEL_KEY] !== currentGrade && ` (Data: ${foundStudentDetails[GRADE_LEVEL_KEY]})`} */}
+                </Typography>
               </Box>
 
-              <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
+              {/* Card Content - Grades Table */}
+              <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+                {" "}
+                {/* Slightly more padding */}
                 <Typography
                   variant="h6"
                   gutterBottom
@@ -521,10 +680,11 @@ export default function StudentsForm() {
                   Subject Grades
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
-                {subjectsForDisplay.length > 0 ? (
+                {subjectsToDisplay.length > 0 ? (
+                  // Render table only if there are subjects after filtering metadata
                   <TableContainer
                     component={Paper}
-                    elevation={0}
+                    elevation={0} // Use Card's elevation
                     variant="outlined"
                     sx={{ borderRadius: 1 }}
                   >
@@ -536,35 +696,24 @@ export default function StudentsForm() {
                         </StyledTableRow>
                       </TableHead>
                       <TableBody>
-                        {subjectsForDisplay.map((subjectItem) => (
-                          <StyledTableRow key={subjectItem.originalKey}>
+                        {/* Map over the filtered subjects */}
+                        {subjectsToDisplay.map(([subjectKey, subjectValue]) => (
+                          <StyledTableRow key={subjectKey}>
                             <StyledTableCell component="th" scope="row">
-                              {subjectItem.subjectName}
+                              {subjectKey || "(Unknown Subject)"}{" "}
+                              {/* Fallback for empty keys */}
                             </StyledTableCell>
                             <StyledTableCell align="right">
-                              {`${subjectItem.obtainedMark} / ${subjectItem.fullMark}`}
+                              {/* Display value, handle null/undefined gracefully */}
+                              {subjectValue ?? "N/A"}
                             </StyledTableCell>
                           </StyledTableRow>
                         ))}
-                        <StyledTableRow
-                          sx={(theme) => ({
-                            "& > td": {
-                              fontWeight: "bold",
-                              borderTop: `2px solid ${theme.palette.divider}`,
-                            },
-                          })}
-                        >
-                          <StyledTableCell component="th" scope="row">
-                            Total Grade
-                          </StyledTableCell>
-                          <StyledTableCell align="right">
-                            {`${totalObtainedMarks} / ${totalFullMarks}`}
-                          </StyledTableCell>
-                        </StyledTableRow>
                       </TableBody>
                     </Table>
                   </TableContainer>
                 ) : (
+                  // Message if student found but no grade columns exist after filtering
                   <Typography
                     sx={{
                       textAlign: "center",
@@ -574,17 +723,19 @@ export default function StudentsForm() {
                       fontStyle: "italic",
                     }}
                   >
-                    No specific subject grades following the 'Subject/FullMark'
-                    format are available for display.
+                    No specific subject grades are available for display for
+                    this student.
                   </Typography>
                 )}
               </CardContent>
             </Card>
           ) : (
+            // Render an empty Box when fading out or if no valid student found/validated
+            // This prevents layout jumps during the Fade transition
             <Box />
           )}
         </Fade>
       </Box>
     </Box>
-  );
-}
+  ); // End of main return Box
+} // End of component function
