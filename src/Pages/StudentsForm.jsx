@@ -22,7 +22,6 @@ import {
   Fade,
   Tooltip,
   tableCellClasses,
-  TableFooter,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import {
@@ -40,7 +39,7 @@ import { doc, getDoc } from "firebase/firestore";
 
 // --- Configuration ---
 const COLLECTION_NAME = "gradeData";
-const ALLOWED_GRADES = ["Junior", "Wheeler", "Senior"];
+const ALLOWED_GRADES = ["Junior", "Cs", "Information"];
 const NATIONAL_ID_KEY = "National ID";
 const GRADE_LEVEL_KEY = "Grade Level";
 const METADATA_KEYS = new Set([
@@ -51,11 +50,26 @@ const METADATA_KEYS = new Set([
   "ID",
   "id",
 ]);
+const SUPPLEMENTARY_FLAG_VALUE = "ملحق";
+const EXCLUDE_FROM_TOTAL_FLAG = "/out";
+const SPECIAL_STATUS_VALUE = "جدير";
+const ARABIC_REGEX = /[\u0600-\u06FF]/;
 
 const capitalize = (s) =>
   s && typeof s === "string"
     ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
     : "";
+
+const formatGradeDisplay = (value) => {
+  const num = parseFloat(value);
+  if (isNaN(num)) {
+    return value;
+  }
+  if (Number.isInteger(num)) {
+    return num;
+  }
+  return num.toFixed(1);
+};
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.head}`]: {
@@ -67,6 +81,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   [`&.${tableCellClasses.body}`]: {
     fontSize: 14,
     borderBottom: `1px solid ${theme.palette.divider}`,
+    fontWeight: "bold",
   },
   [`&.${tableCellClasses.footer}`]: {
     fontSize: 14,
@@ -100,7 +115,6 @@ export default function StudentsForm() {
   const [searchFeedback, setSearchFeedback] = useState(null);
   const [searched, setSearched] = useState(false);
 
-  // All other functions are correct and remain unchanged.
   useEffect(() => {
     const gradeParamNormalized = capitalize(rawGradeParam);
     if (ALLOWED_GRADES.includes(gradeParamNormalized)) {
@@ -173,9 +187,9 @@ export default function StudentsForm() {
       switch (g) {
         case "Junior":
           return "#4CAF50";
-        case "Wheeler":
+        case "Cs":
           return "#E6B325";
-        case "Senior":
+        case "Information":
           return "#F44336";
         default:
           return "#9E9E9E";
@@ -184,7 +198,7 @@ export default function StudentsForm() {
     [currentGrade]
   );
 
-  const compareNationalIds = (storedIdValue, inputIdTrimmed) => {
+  const compareIds = (storedIdValue, inputIdTrimmed) => {
     if (
       storedIdValue === null ||
       storedIdValue === undefined ||
@@ -239,8 +253,9 @@ export default function StudentsForm() {
       let feedback = null;
       try {
         foundStudentRaw = gradeData.find((student) =>
-          compareNationalIds(student?.[NATIONAL_ID_KEY], trimmedId)
+          compareIds(student?.[NATIONAL_ID_KEY], trimmedId)
         );
+
         if (foundStudentRaw) {
           const studentActualGradeNormalized = capitalize(
             foundStudentRaw[GRADE_LEVEL_KEY]
@@ -388,55 +403,90 @@ export default function StudentsForm() {
     return null;
   };
 
-  // --- *** MODIFICATION 1 of 2: Update the processing logic *** ---
   const processedStudentGrades = useMemo(() => {
     const details = studentData?.data;
+    const initialResult = {
+      arabicNormalSubjects: [],
+      englishNormalSubjects: [],
+      specialStatusSubjects: [],
+      excludedSubjects: [],
+      total: null,
+      hasSupplementary: false,
+    };
     if (!details) {
-      return { subjects: [], total: null };
+      return initialResult;
     }
 
     const subjectEntries = Object.entries(details).filter(
       ([key]) => !METADATA_KEYS.has(key)
     );
 
+    const hasSupplementary = subjectEntries.some(
+      ([, value]) => String(value).trim() === SUPPLEMENTARY_FLAG_VALUE
+    );
+
+    if (hasSupplementary) {
+      return { ...initialResult, hasSupplementary: true };
+    }
+
     let totalAchieved = 0;
     let totalPossible = 0;
-    const subjectsForDisplay = [];
+    const arabicNormalSubjects = [];
+    const englishNormalSubjects = [];
+    const specialStatusSubjects = [];
+    const excludedSubjects = [];
 
     for (const [key, value] of subjectEntries) {
-      const achievedScore = parseFloat(value);
-      if (!isNaN(achievedScore)) {
-        totalAchieved += achievedScore;
-      }
-
       let displayName = key;
-      let possibleScore = null; // Default to null
+      let possibleScore = null;
+      const isExcludedFromTotal = key.includes(EXCLUDE_FROM_TOTAL_FLAG);
 
       if (key.includes("/")) {
         const keyParts = key.split("/");
         displayName = keyParts[0].trim();
         const parsedPossible = parseFloat(keyParts[1].trim());
         if (!isNaN(parsedPossible)) {
-          possibleScore = parsedPossible; // Store the number
-          totalPossible += parsedPossible;
+          possibleScore = parsedPossible;
         }
       }
 
-      // Store all the parts we need for rendering each row
-      subjectsForDisplay.push({
-        uniqueKey: key, // Use original key for React's key prop
+      const subjectObject = {
+        uniqueKey: key,
         displayName: displayName,
-        achieved: value, // Keep original value for display (e.g., '9.5')
+        achieved: value,
         possible: possibleScore,
-      });
+      };
+
+      if (isExcludedFromTotal) {
+        excludedSubjects.push(subjectObject);
+      } else if (String(value).trim() === SPECIAL_STATUS_VALUE) {
+        specialStatusSubjects.push(subjectObject);
+      } else {
+        const achievedScore = parseFloat(value);
+        if (!isNaN(achievedScore)) {
+          totalAchieved += achievedScore;
+          if (possibleScore !== null) {
+            totalPossible += possibleScore;
+          }
+        }
+        if (ARABIC_REGEX.test(displayName)) {
+          arabicNormalSubjects.push(subjectObject);
+        } else {
+          englishNormalSubjects.push(subjectObject);
+        }
+      }
     }
 
     return {
-      subjects: subjectsForDisplay,
+      arabicNormalSubjects,
+      englishNormalSubjects,
+      specialStatusSubjects,
+      excludedSubjects,
       total: {
         achieved: totalAchieved,
         possible: totalPossible,
       },
+      hasSupplementary: false,
     };
   }, [studentData]);
 
@@ -467,7 +517,7 @@ export default function StudentsForm() {
       >
         <TextField
           id="national-id-input"
-          placeholder="Enter Student National ID"
+          placeholder="ادخل الرقم الجلوس"
           variant="outlined"
           fullWidth
           value={nationalId}
@@ -534,11 +584,7 @@ export default function StudentsForm() {
                   cursor: "not-allowed",
                 },
               }}
-              aria-label={
-                currentGrade
-                  ? `Search ${currentGrade} for student grades`
-                  : "Search disabled"
-              }
+              aria-label="Search button"
             >
               {searchLoading ? (
                 <CircularProgress size={24} color="inherit" />
@@ -578,27 +624,52 @@ export default function StudentsForm() {
                 <Typography
                   variant="h5"
                   component="h2"
-                  sx={{ fontWeight: "medium" }}
+                  sx={{ fontWeight: "bold", textAlign: "right" }}
                 >
                   {foundStudentDetails.Name ?? "Name Not Available"}
                 </Typography>
-                <Typography variant="body1" sx={{ opacity: 0.9 }}>
-                  National ID: {foundStudentDetails[NATIONAL_ID_KEY] ?? "N/A"}
+                <Typography
+                  variant="body1"
+                  sx={{ opacity: 0.9, fontWeight: "bold", textAlign: "right" }}
+                >
+                  رقم الجلوس: {foundStudentDetails[NATIONAL_ID_KEY] ?? "N/A"}
                 </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    opacity: 0.8,
+                    mt: 0.5,
+                    fontWeight: "bold",
+                    textAlign: "right",
+                  }}
+                >
                   Grade Level: {currentGrade}
                 </Typography>
               </Box>
+
               <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
                 <Typography
                   variant="h6"
                   gutterBottom
-                  sx={{ fontWeight: "medium" }}
+                  sx={{ fontWeight: "bold" }}
                 >
-                  Subject Grades
+                  Student Result
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
-                {processedStudentGrades.subjects.length > 0 ? (
+
+                {processedStudentGrades.hasSupplementary ? (
+                  <Alert
+                    severity="warning"
+                    variant="outlined"
+                    icon={<WarningAmber fontSize="inherit" />}
+                    sx={{ mt: 2, mb: 1, fontSize: { md: "40px", xs: "20px" } }}
+                  >
+                    برجاء مراجعة ادارة المدرسة
+                  </Alert>
+                ) : processedStudentGrades.arabicNormalSubjects.length > 0 ||
+                  processedStudentGrades.englishNormalSubjects.length > 0 ||
+                  processedStudentGrades.specialStatusSubjects.length > 0 ||
+                  processedStudentGrades.excludedSubjects.length > 0 ? (
                   <TableContainer
                     component={Paper}
                     elevation={0}
@@ -612,47 +683,87 @@ export default function StudentsForm() {
                           <StyledTableCell align="right">Mark</StyledTableCell>
                         </StyledTableRow>
                       </TableHead>
+
                       <TableBody>
-                        {/* --- *** MODIFICATION 2 of 2: Update the table rendering *** --- */}
-                        {processedStudentGrades.subjects.map((subject) => (
-                          <StyledTableRow key={subject.uniqueKey}>
-                            {/* Display the cleaned subject name */}
-                            <StyledTableCell component="th" scope="row">
-                              {subject.displayName}
-                            </StyledTableCell>
-                            {/* Display the mark and the possible score */}
-                            <StyledTableCell align="right">
-                              {subject.possible
-                                ? `${subject.achieved} / ${subject.possible}`
-                                : (subject.achieved ?? "N/A")}
-                            </StyledTableCell>
-                          </StyledTableRow>
-                        ))}
-                      </TableBody>
-                      {processedStudentGrades.total &&
-                        processedStudentGrades.total.possible > 0 && (
-                          <TableFooter>
-                            <StyledTableRow
-                              sx={{
-                                "&:last-child td, &:last-child th": {
-                                  borderTop: `2px solid #ccc`,
-                                },
-                              }}
-                            >
+                        {processedStudentGrades.arabicNormalSubjects.map(
+                          (subject) => (
+                            <StyledTableRow key={subject.uniqueKey}>
+                              <StyledTableCell component="th" scope="row">
+                                {subject.displayName}
+                              </StyledTableCell>
+                              <StyledTableCell align="right">
+                                {subject.possible
+                                  ? `${formatGradeDisplay(subject.achieved)} / ${subject.possible}`
+                                  : (formatGradeDisplay(subject.achieved) ??
+                                    "N/A")}
+                              </StyledTableCell>
+                            </StyledTableRow>
+                          )
+                        )}
+                        {processedStudentGrades.englishNormalSubjects.map(
+                          (subject) => (
+                            <StyledTableRow key={subject.uniqueKey}>
+                              <StyledTableCell component="th" scope="row">
+                                {subject.displayName}
+                              </StyledTableCell>
+                              <StyledTableCell align="right">
+                                {subject.possible
+                                  ? `${formatGradeDisplay(subject.achieved)} / ${subject.possible}`
+                                  : (formatGradeDisplay(subject.achieved) ??
+                                    "N/A")}
+                              </StyledTableCell>
+                            </StyledTableRow>
+                          )
+                        )}
+                        {processedStudentGrades.specialStatusSubjects.map(
+                          (subject) => (
+                            <StyledTableRow key={subject.uniqueKey}>
+                              <StyledTableCell component="th" scope="row">
+                                {subject.displayName}
+                              </StyledTableCell>
+                              <StyledTableCell align="right">
+                                {subject.achieved}
+                              </StyledTableCell>
+                            </StyledTableRow>
+                          )
+                        )}
+
+                        {processedStudentGrades.total &&
+                          processedStudentGrades.total.possible > 0 && (
+                            <StyledTableRow>
                               <StyledTableCell
                                 component="th"
                                 scope="row"
-                                sx={{ fontWeight: "bold" }}
+                                sx={{ borderTop: `2px solid #ccc` }}
                               >
                                 Total
                               </StyledTableCell>
                               <StyledTableCell
                                 align="right"
-                                sx={{ fontWeight: "bold" }}
-                              >{`${processedStudentGrades.total.achieved} / ${processedStudentGrades.total.possible}`}</StyledTableCell>
+                                sx={{ borderTop: `2px solid #ccc` }}
+                              >
+                                {`${formatGradeDisplay(processedStudentGrades.total.achieved)} / ${processedStudentGrades.total.possible}`}
+                              </StyledTableCell>
                             </StyledTableRow>
-                          </TableFooter>
+                          )}
+
+                        {/* --- *** FINAL FIX: Render excluded subjects correctly and without italics *** --- */}
+                        {processedStudentGrades.excludedSubjects.map(
+                          (subject) => (
+                            <StyledTableRow key={subject.uniqueKey}>
+                              <StyledTableCell component="th" scope="row">
+                                {subject.displayName}
+                              </StyledTableCell>
+                              <StyledTableCell align="right">
+                                {subject.possible
+                                  ? `${formatGradeDisplay(subject.achieved)} / ${subject.possible}`
+                                  : (formatGradeDisplay(subject.achieved) ??
+                                    "N/A")}
+                              </StyledTableCell>
+                            </StyledTableRow>
+                          )
                         )}
+                      </TableBody>
                     </Table>
                   </TableContainer>
                 ) : (
@@ -665,8 +776,8 @@ export default function StudentsForm() {
                       fontStyle: "italic",
                     }}
                   >
-                    No specific subject grades are available for display for
-                    this student.
+                    No specific grades are available for display for this
+                    student.
                   </Typography>
                 )}
               </CardContent>

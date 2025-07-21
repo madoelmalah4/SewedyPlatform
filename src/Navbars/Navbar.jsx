@@ -113,9 +113,6 @@ const Navbar = () => {
     finalNavLinks.push({ text: "Dashboard", to: dashboardPath });
   }
 
-  // Mobile menu state and handler (placeholder)
-  // const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // const handleDrawerToggle = () => setMobileMenuOpen(!mobileMenuOpen);
 
   return (
     <AppBar
